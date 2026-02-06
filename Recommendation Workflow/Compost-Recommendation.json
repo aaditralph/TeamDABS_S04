@@ -1,0 +1,288 @@
+{
+  "name": "Compost-Recommendation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "compost-monitor",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        0
+      ],
+      "id": "73d93dd8-8e56-45df-96e2-cf1167347d45",
+      "name": "Webhook",
+      "webhookId": "c3d3c958-bb4a-4547-9f10-8cd0dd923340"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a61f8e8-0ef3-43a3-a779-150448ab6e12",
+              "name": "temperature_c",
+              "value": "28",
+              "type": "string"
+            },
+            {
+              "id": "535af90e-0bfe-4672-ae2a-94f448958298",
+              "name": "moisture_percent",
+              "value": "15",
+              "type": "string"
+            },
+            {
+              "id": "a04242bd-c02e-44b6-be9f-825ff7831903",
+              "name": "ph_level",
+              "value": "5.5",
+              "type": "string"
+            },
+            {
+              "id": "04c64d52-0eeb-4c7b-a461-f3ede38e4e10",
+              "name": "day_of_cycle",
+              "value": "5",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2faaf627-6240-49ed-bd10-87bece322425",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert Agronomist monitoring an industrial OWC.\n\nCurrent Sensor Readings:\n- Day: {{ $json.day_of_cycle }}\n- Temperature: {{ $json.temperature_c }}°C\n- Moisture: {{ $json.moisture_percent }}%\n- pH: {{ $json.ph_level }}\n\nReference Standards:\n1. Day 4-15 (Thermophilic): Temp MUST be > 45°C.\n2. Moisture: Ideal 40-60%. <40% is too dry.\n3. pH: Ideal 6.0-8.0.\n\nBased on these readings, output a STRICT JSON object:\n{\n  \"status\": \"CRITICAL\" | \"WARNING\" | \"OPTIMAL\",\n  \"issue\": \"Brief description of the worst issue\",\n  \"recommendation\": \"One specific action for the secretary.\"\n}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "="
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        624,
+        0
+      ],
+      "id": "b35221f7-09b9-4acc-8158-d3862ad8972f",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        624,
+        192
+      ],
+      "id": "ce352685-52c8-4234-9a4a-7a787c6b6784",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WRHcyPx957A7oPBt",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get the text output (Handling different field names)\n// We try 'text' first, then 'output', then 'content'\nconst incoming = $input.first().json;\nconst aiText = incoming.text || incoming.output || incoming.content;\n// Safety Check: If AI failed to answer, stop here to prevent crash\nif (!aiText) {\n  throw new Error(\"CRITICAL: No text returned from AI Agent. Check the Agent input.\");\n}\n\n// 2. Remove markdown backticks (```json and ```)\nconst cleanJson = aiText.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// 3. Parse string into a real Object\ntry {\n  const data = JSON.parse(cleanJson);\n  return { json: data };\n} catch (e) {\n  // If AI returned bad JSON, fail gracefully with a readable error\n  throw new Error(\"JSON Parse Failed. AI returned: \" + cleanJson);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "60a24e79-20ed-43f5-bf1e-e05509e7e68f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "822bb3a5-e6fe-4613-a5ea-677fa4cb7224",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "OPTIMAL",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "a118cb17-7124-4c3b-8658-28e959ec5939",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "10d50dhirenmulwani@gmail.com",
+        "toEmail": "10d50dhirenmulwani@gmail.com",
+        "subject": "Compost-Alert",
+        "emailFormat": "text",
+        "text": "=URGENT OWC ALERT\n--------------------------------------------------\nStatus: {{ $json.status }}\nDay: {{ $json.day_of_cycle }}\n--------------------------------------------------\n\nDETECTED ISSUE:\n{{ $json.issue }}\n\nRECOMMENDED ACTION:\n{{ $json.recommendation }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1648,
+        -176
+      ],
+      "id": "4a4fb1e9-705a-435a-bad5-3299d4e3cac8",
+      "name": "Send email",
+      "webhookId": "a1c9b172-26a8-4aeb-ae25-4fb543a242de",
+      "credentials": {
+        "smtp": {
+          "id": "HypCsBytxF2TEuKR",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "readings",
+        "fields": "={\n  \"society_id\": \"{{ $('Webhook').first().json.body.society_id }}\",\n  \"temperature\": {{ $('Webhook').first().json.body.sensors.temperature_c }},\n  \"moisture\": {{ $('Webhook').first().json.body.sensors.moisture_percent }},\n  \"status\": \"{{ $json.status }}\",\n  \"timestamp\": \"{{ $now }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "f6975da6-c129-4b9c-a3f7-36d31dcc1959",
+      "name": "Insert documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "hbOt49IoNLypCNh4",
+          "name": "MongoDB account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert documents": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "5b1192b6-15fe-4914-bfa1-66de22b648ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f9385a8ad0f45c3a418e97a358eec62e2c3dbd7a31e3b8fadc69828cdc3fbd50"
+  },
+  "id": "5-QQEJCTJPu25hZ-Z4l4Z",
+  "tags": []
+}
