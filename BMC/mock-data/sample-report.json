@@ -1,0 +1,50 @@
+{
+  "_id": "report_001",
+  "societyAccountId": "society_001",
+  "submittedBy": "resident_001",
+  "submissionDate": "2026-02-07T10:30:00.000Z",
+  "submissionImages": [
+    {
+      "url": "http://localhost:3000/uploads/verification/meter_001.jpg",
+      "uploadedAt": "2026-02-07T10:30:00.000Z",
+      "label": "meter_reading",
+      "gpsMetadata": {
+        "latitude": 19.0760,
+        "longitude": 72.8777,
+        "accuracy": 10,
+        "timestamp": "2026-02-07T10:25:00.000Z"
+      }
+    },
+    {
+      "url": "http://localhost:3000/uploads/verification/composter_001.jpg",
+      "uploadedAt": "2026-02-07T10:30:00.000Z",
+      "label": "composter_photo"
+    }
+  ],
+  "verificationImages": [],
+  "gpsMetadata": {
+    "latitude": 19.0760,
+    "longitude": 72.8777,
+    "accuracy": 10,
+    "timestamp": "2026-02-07T10:30:00.000Z"
+  },
+  "iotSensorData": {
+    "deviceId": "IOT-001",
+    "deviceType": "VIBRATION_SENSOR",
+    "vibrationStatus": "DETECTED",
+    "sensorValue": 0.75,
+    "batteryLevel": 85,
+    "isOnline": true
+  },
+  "aiTrustScore": 78,
+  "verificationProbability": 82,
+  "verificationStatus": "PENDING",
+  "approvalType": "NONE",
+  "officerId": null,
+  "reviewTimestamp": null,
+  "officerComments": null,
+  "rejectionReason": null,
+  "expiresAt": "2026-02-14T10:30:00.000Z",
+  "createdAt": "2026-02-07T10:30:00.000Z",
+  "updatedAt": "2026-02-07T10:30:00.000Z"
+}

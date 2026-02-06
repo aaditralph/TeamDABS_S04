@@ -1,15 +1,16 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart'; 
-import 'package:geocoding/geocoding.dart'; 
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'api_service.dart';
+import 'models/auth_models.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-// --- App Root ---
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Society Manager',
+      title: 'DABS_Project',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         useMaterial3: true,
@@ -27,15 +28,11 @@ class MyApp extends StatelessWidget {
           fillColor: Colors.blue.shade50,
         ),
       ),
-      // NEW: We start at the Role Selection Screen
       home: const RoleSelectionPage(),
     );
   }
 }
 
-// ==========================================
-// 1. LANDING PAGE (Select Role)
-// ==========================================
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
 
@@ -52,35 +49,48 @@ class RoleSelectionPage extends StatelessWidget {
               const Icon(Icons.apartment, size: 80, color: Colors.indigo),
               const SizedBox(height: 40),
               const Text(
-                'Welcome to Society Manager',
+                'DABS Project',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Compost Marketplace',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 60),
-              
-              // Option 1: Resident
               ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ResidentLoginPage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MarketView()),
+                  );
                 },
-                icon: const Icon(Icons.person),
-                label: const Text("Login as Resident"),
+                icon: const Icon(Icons.store),
+                label: const Text("Browse Marketplace"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  backgroundColor: Colors.blue, 
+                  backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                 ),
               ),
               const SizedBox(height: 20),
-              
-              // Option 2: Secretary / Committee
               ElevatedButton.icon(
                 onPressed: () {
-                  // Goes to the AuthWrapper we built before
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SecretaryAuthWrapper()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SecretaryAuthWrapper(),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.admin_panel_settings),
-                label: const Text("Login as Secretary / Committee"),
+                label: const Text("Society Login / Register"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   backgroundColor: Colors.indigo,
@@ -95,249 +105,6 @@ class RoleSelectionPage extends StatelessWidget {
   }
 }
 
-// ==========================================
-// 2. RESIDENT FLOW (New Features)
-// ==========================================
-
-// --- Resident Login ---
-class ResidentLoginPage extends StatelessWidget {
-  const ResidentLoginPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final buildingController = TextEditingController();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Resident Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "Access your Building Dashboard",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 30),
-            TextField(
-              controller: buildingController,
-              decoration: const InputDecoration(
-                labelText: 'Enter Building Email OR Name',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                // BACKEND TODO: Validate if this building exists in DB
-                if (buildingController.text.isNotEmpty) {
-                  Navigator.pushReplacement(
-                    context, 
-                    MaterialPageRoute(builder: (_) => ResidentDashboard(buildingName: buildingController.text))
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a name")));
-                }
-              },
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text("Login to Dashboard"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- Resident Dashboard ---
-class ResidentDashboard extends StatefulWidget {
-  final String buildingName;
-  const ResidentDashboard({super.key, required this.buildingName});
-
-  @override
-  State<ResidentDashboard> createState() => _ResidentDashboardState();
-}
-
-class _ResidentDashboardState extends State<ResidentDashboard> {
-  String _currentView = 'Tax Rebate';
-
-  void _showCalendar() {
-    showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: Colors.indigo)), child: child!),
-    );
-  }
-
-  void _showProfile() {
-    // Shows the Building Name as requested
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Row(children: const [Icon(Icons.apartment, color: Colors.indigo), SizedBox(width: 10), Text("Current Building")]),
-        content: Text("You are logged in viewing data for:\n\n${widget.buildingName}", style: const TextStyle(fontSize: 18)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close"))],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_currentView),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(icon: const Icon(Icons.calendar_month), onPressed: _showCalendar), // "Calculator like before" (Calendar)
-          IconButton(icon: const Icon(Icons.account_circle), onPressed: _showProfile),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.indigo),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Icon(Icons.person, color: Colors.white, size: 40),
-                  const SizedBox(height: 10),
-                  const Text("Resident Menu", style: TextStyle(color: Colors.white, fontSize: 24)),
-                  Text(widget.buildingName, style: const TextStyle(color: Colors.white70)),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.percent),
-              title: const Text('Tax Rebate'),
-              onTap: () { setState(() => _currentView = 'Tax Rebate'); Navigator.pop(context); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.description),
-              title: const Text('Reports Sent'),
-              onTap: () { setState(() => _currentView = 'Reports Sent'); Navigator.pop(context); },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout'),
-              onTap: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionPage()), (route) => false),
-            ),
-          ],
-        ),
-      ),
-      body: _getBodyWidget(),
-    );
-  }
-
-  Widget _getBodyWidget() {
-    switch (_currentView) {
-      case 'Tax Rebate': return const TaxRebateView();
-      case 'Reports Sent': return const ReportsSentView();
-      default: return const TaxRebateView();
-    }
-  }
-}
-
-// --- Resident View 1: Tax Rebate ---
-class TaxRebateView extends StatefulWidget {
-  const TaxRebateView({super.key});
-
-  @override
-  State<TaxRebateView> createState() => _TaxRebateViewState();
-}
-
-class _TaxRebateViewState extends State<TaxRebateView> {
-  String _resultText = "";
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text("Calculate Potential Rebate", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
-          const SizedBox(height: 20),
-          const TextField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Enter Property Tax Amount',
-              prefixText: '₹ ',
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // BACKEND TODO: 
-              // 1. Send input amount to server.
-              // 2. Server checks compost history.
-              // 3. Server returns calculated rebate.
-              
-              setState(() {
-                // Placeholder for now
-                _resultText = "Based on your society's compost output, you are eligible for a 5% rebate!\n\nEstimated Saving: ₹ 1,200";
-              });
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-            child: const Text("Calculate"),
-          ),
-          const SizedBox(height: 40),
-          // Backend Response Area
-          if (_resultText.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green)),
-              child: Text(_resultText, style: const TextStyle(fontSize: 16, color: Colors.green)),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// --- Resident View 2: Reports Sent ---
-class ReportsSentView extends StatelessWidget {
-  const ReportsSentView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 3, // Dummy count
-      itemBuilder: (context, index) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: ListTile(
-            leading: const Icon(Icons.check_circle, color: Colors.green, size: 40),
-            title: Text("Report #${1023 + index}"),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Submitted: Feb ${5 - index}, 2026"),
-                // BACKEND TODO: Fetch the response from BMC office for this specific report
-                const Text("Status: Approved by BMC Officer", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-              ],
-            ),
-            isThreeLine: true,
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ==========================================
-// 3. SECRETARY FLOW (Existing Logic)
-// ==========================================
-
 class SecretaryAuthWrapper extends StatefulWidget {
   const SecretaryAuthWrapper({super.key});
 
@@ -346,7 +113,8 @@ class SecretaryAuthWrapper extends StatefulWidget {
 }
 
 class _SecretaryAuthWrapperState extends State<SecretaryAuthWrapper> {
-  bool showRegister = true;
+  bool showRegister = false;
+
   void toggleView() => setState(() => showRegister = !showRegister);
 
   @override
@@ -356,70 +124,6 @@ class _SecretaryAuthWrapperState extends State<SecretaryAuthWrapper> {
     } else {
       return LoginPage(onTapRegister: toggleView);
     }
-  }
-}
-
-// ... [The RegisterPage, LoginPage, and DashboardPage for Secretaries are below]
-// ... [Using the EXACT SAME code from before, just renamed UserProfileData to avoid conflict if needed]
-
-class UserProfileData {
-  String name; String address; String email; String ward;
-  UserProfileData({required this.name, required this.address, required this.email, required this.ward});
-}
-
-class RegisterPage extends StatelessWidget {
-  final VoidCallback onTapLogin;
-  const RegisterPage({super.key, required this.onTapLogin});
-
-  @override
-  Widget build(BuildContext context) {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    final meterController = TextEditingController();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-    final wardController = TextEditingController();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Secretary Registration")),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Building Name', prefixIcon: Icon(Icons.apartment))),
-              const SizedBox(height: 16),
-              TextField(controller: addressController, decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on))),
-              const SizedBox(height: 16),
-              TextField(controller: meterController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Meter Number', prefixIcon: Icon(Icons.electric_meter))),
-              const SizedBox(height: 16),
-              TextField(controller: wardController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ward Number', prefixIcon: Icon(Icons.map))),
-              const SizedBox(height: 16),
-              TextField(controller: emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email of Society', prefixIcon: Icon(Icons.email))),
-              const SizedBox(height: 16),
-              TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock))),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  final newUser = UserProfileData(
-                    name: nameController.text.isNotEmpty ? nameController.text : "Unknown Building",
-                    address: addressController.text.isNotEmpty ? addressController.text : "No Address",
-                    email: emailController.text.isNotEmpty ? emailController.text : "No Email",
-                    ward: wardController.text.isNotEmpty ? wardController.text : "No Ward",
-                  );
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecretaryDashboardPage(userProfile: newUser)));
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Register as Secretary'),
-              ),
-              const SizedBox(height: 20),
-              TextButton(onPressed: onTapLogin, child: const Text('Already registered? Login')),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -433,27 +137,75 @@ class LoginPage extends StatelessWidget {
     final passwordController = TextEditingController();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Secretary Login")),
+      appBar: AppBar(title: const Text("Society Login")),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(controller: emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email of Society', prefixIcon: Icon(Icons.email))),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                ),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock))),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () {
-                  final dummyUser = UserProfileData(name: "Returning User", address: "123 Main St", email: emailController.text, ward: "B-2");
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecretaryDashboardPage(userProfile: dummyUser)));
+                onPressed: () async {
+                  if (emailController.text.isEmpty ||
+                      passwordController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Please fill all fields")),
+                    );
+                    return;
+                  }
+
+                  final response = await ApiService.loginSociety(
+                    emailController.text,
+                    passwordController.text,
+                  );
+
+                  if (response != null) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SecretaryDashboardPage(),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Login failed. Check credentials or account approval.",
+                        ),
+                      ),
+                    );
+                  }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: const Text('Login'),
               ),
               const SizedBox(height: 20),
-              TextButton(onPressed: onTapRegister, child: const Text('New Society? Register')),
+              TextButton(
+                onPressed: onTapRegister,
+                child: const Text('New Society? Register'),
+              ),
             ],
           ),
         ),
@@ -462,43 +214,216 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-// --- Secretary Dashboard (The original one with Camera/Geotag) ---
+class RegisterPage extends StatelessWidget {
+  final VoidCallback onTapLogin;
+  const RegisterPage({super.key, required this.onTapLogin});
+
+  @override
+  Widget build(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final phoneController = TextEditingController();
+    final societyNameController = TextEditingController();
+    final streetController = TextEditingController();
+    final cityController = TextEditingController();
+    final stateController = TextEditingController();
+    final pincodeController = TextEditingController();
+    final meterController = TextEditingController();
+    final taxController = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Society Registration")),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Your Name',
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: societyNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Society Name',
+                  prefixIcon: Icon(Icons.apartment),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: streetController,
+                decoration: const InputDecoration(
+                  labelText: 'Street Address',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: cityController,
+                      decoration: const InputDecoration(labelText: 'City'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: stateController,
+                      decoration: const InputDecoration(labelText: 'State'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pincodeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Pincode',
+                  prefixIcon: Icon(Icons.local_post_office),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: meterController,
+                decoration: const InputDecoration(
+                  labelText: 'Electric Meter Serial Number',
+                  prefixIcon: Icon(Icons.electric_meter),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: taxController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Property Tax Estimate',
+                  prefixText: 'Rs. ',
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.isEmpty ||
+                      emailController.text.isEmpty ||
+                      passwordController.text.isEmpty ||
+                      societyNameController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please fill required fields"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final response = await ApiService.registerSociety(
+                    name: nameController.text,
+                    email: emailController.text,
+                    password: passwordController.text,
+                    phone: phoneController.text,
+                    societyName: societyNameController.text,
+                    street: streetController.text,
+                    city: cityController.text,
+                    state: stateController.text,
+                    pincode: pincodeController.text,
+                    latitude: 19.0760,
+                    longitude: 72.8777,
+                    propertyTaxEstimate:
+                        double.tryParse(taxController.text) ?? 0,
+                    electricMeterSerialNumber: meterController.text,
+                  );
+
+                  if (response != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Registration successful! Waiting for admin approval.",
+                        ),
+                      ),
+                    );
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SecretaryAuthWrapper(),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Registration failed. Try again."),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Register'),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: onTapLogin,
+                child: const Text('Already registered? Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SecretaryDashboardPage extends StatefulWidget {
-  final UserProfileData userProfile;
-  const SecretaryDashboardPage({super.key, required this.userProfile});
+  const SecretaryDashboardPage({super.key});
 
   @override
   State<SecretaryDashboardPage> createState() => _SecretaryDashboardPageState();
 }
 
 class _SecretaryDashboardPageState extends State<SecretaryDashboardPage> {
-  String _currentView = 'Upload Report'; 
+  String _currentView = 'Upload Report';
 
-  void _showCalendar() {
-    showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: Colors.indigo)), child: child!),
-    );
-  }
-
-  void _showProfile() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Row(children: const [Icon(Icons.person, color: Colors.indigo), SizedBox(width: 10), Text("Secretary Profile")]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Building: ${widget.userProfile.name}"),
-            Text("Ward: ${widget.userProfile.ward}"),
-          ],
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close"))],
-      ),
+  void _logout() async {
+    await ApiService.clearToken();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+      (route) => false,
     );
   }
 
@@ -510,8 +435,7 @@ class _SecretaryDashboardPageState extends State<SecretaryDashboardPage> {
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.calendar_month), onPressed: _showCalendar),
-          IconButton(icon: const Icon(Icons.person), onPressed: _showProfile),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       drawer: Drawer(
@@ -520,20 +444,57 @@ class _SecretaryDashboardPageState extends State<SecretaryDashboardPage> {
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(color: Colors.indigo),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-                const Icon(Icons.admin_panel_settings, color: Colors.white, size: 40),
-                const SizedBox(height: 10),
-                Text(widget.userProfile.name, style: const TextStyle(color: Colors.white, fontSize: 18)),
-                Text("Secretary Mode", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Society Dashboard",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  const Text(
+                    "Secretary Mode",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
             ),
-            ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Upload Report'), onTap: () { setState(() => _currentView = 'Upload Report'); Navigator.pop(context); }),
-            ListTile(leading: const Icon(Icons.history), title: const Text('Previous Report Status'), onTap: () { setState(() => _currentView = 'Previous Report'); Navigator.pop(context); }),
-            ListTile(leading: const Icon(Icons.psychology), title: const Text('AI Recommendation'), onTap: () { setState(() => _currentView = 'AI Recommendation'); Navigator.pop(context); }),
-            ListTile(leading: const Icon(Icons.store), title: const Text('Market'), onTap: () { setState(() => _currentView = 'Market'); Navigator.pop(context); }),
-            ListTile(leading: const Icon(Icons.newspaper), title: const Text('News Dashboard'), onTap: () { setState(() => _currentView = 'News Dashboard'); Navigator.pop(context); }),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Upload Report'),
+              onTap: () {
+                setState(() => _currentView = 'Upload Report');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('My Reports'),
+              onTap: () {
+                setState(() => _currentView = 'My Reports');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.store),
+              title: const Text('Marketplace'),
+              onTap: () {
+                setState(() => _currentView = 'Marketplace');
+                Navigator.pop(context);
+              },
+            ),
             const Divider(),
-            ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Logout'), onTap: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionPage()), (route) => false)),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout'),
+              onTap: _logout,
+            ),
           ],
         ),
       ),
@@ -543,21 +504,32 @@ class _SecretaryDashboardPageState extends State<SecretaryDashboardPage> {
 
   Widget _getBodyWidget() {
     switch (_currentView) {
-      case 'Upload Report': return const UploadReportView();
-      case 'Previous Report': return const Center(child: Text("Previous Reports (Backend Pending)"));
-      case 'AI Recommendation': return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Keep it up! Everything is good.", textAlign: TextAlign.center, style: TextStyle(fontSize: 20, color: Colors.indigo))));
-      case 'Market': return const MarketView();
-      case 'News Dashboard': return const Center(child: Text("News Feed loading..."));
-      default: return const UploadReportView();
+      case 'Upload Report':
+        return const UploadReportView();
+      case 'My Reports':
+        return const MyReportsView();
+      case 'Marketplace':
+        return const MarketView();
+      default:
+        return const UploadReportView();
     }
   }
 }
 
-// --- Photo Upload Logic (Geotagging + Address) ---
 class TaggedPhoto {
   final File file;
   final String? address;
-  TaggedPhoto(this.file, this.address);
+  final double? latitude;
+  final double? longitude;
+  final double? accuracy;
+
+  TaggedPhoto(
+    this.file,
+    this.address,
+    this.latitude,
+    this.longitude,
+    this.accuracy,
+  );
 }
 
 class UploadReportView extends StatefulWidget {
@@ -571,7 +543,8 @@ class _UploadReportViewState extends State<UploadReportView> {
   final List<TaggedPhoto> _composterPhotos = [];
   final List<TaggedPhoto> _meterPhotos = [];
   final ImagePicker _picker = ImagePicker();
-  bool _isLoadingLocation = false;
+  bool _isLoading = false;
+  bool _isSubmitting = false;
 
   Future<void> _takePhoto(bool isComposter) async {
     LocationPermission permission = await Geolocator.checkPermission();
@@ -580,26 +553,98 @@ class _UploadReportViewState extends State<UploadReportView> {
       if (permission == LocationPermission.denied) return;
     }
 
-    setState(() => _isLoadingLocation = true);
+    setState(() => _isLoading = true);
 
     try {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
-        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-        List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-        String readableAddress = placemarks.isNotEmpty 
-            ? "${placemarks[0].name}, ${placemarks[0].subLocality}, ${placemarks[0].locality}" 
-            : "Lat: ${position.latitude}";
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        String readableAddress = placemarks.isNotEmpty
+            ? "${placemarks[0].name}, ${placemarks[0].subLocality}, ${placemarks[0].locality}"
+            : "Lat: ${position.latitude.toStringAsFixed(4)}";
 
         setState(() {
-          final tagged = TaggedPhoto(File(photo.path), readableAddress);
-          if (isComposter) _composterPhotos.add(tagged); else _meterPhotos.add(tagged);
+          final tagged = TaggedPhoto(
+            File(photo.path),
+            readableAddress,
+            position.latitude,
+            position.longitude,
+            position.accuracy,
+          );
+          if (isComposter) {
+            _composterPhotos.add(tagged);
+          } else {
+            _meterPhotos.add(tagged);
+          }
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Location Error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Location Error: $e")));
     } finally {
-      setState(() => _isLoadingLocation = false);
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _submitReport() async {
+    if (_composterPhotos.isEmpty && _meterPhotos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please take at least one photo")),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final token = await ApiService.getToken();
+      if (token == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Please login first")));
+        return;
+      }
+
+      final composterFile = _composterPhotos.isNotEmpty
+          ? _composterPhotos.last
+          : null;
+      final meterFile = _meterPhotos.isNotEmpty ? _meterPhotos.last : null;
+
+      final response = await ApiService.submitReport(
+        token: token,
+        meterImage: meterFile?.file ?? composterFile!.file,
+        composterImage: composterFile?.file ?? meterFile!.file,
+        latitude: (meterFile ?? composterFile)!.latitude!,
+        longitude: (meterFile ?? composterFile)!.longitude!,
+        accuracy: (meterFile ?? composterFile)!.accuracy!,
+      );
+
+      if (response != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Report submitted! ID: ${response.reportId}")),
+        );
+        setState(() {
+          _composterPhotos.clear();
+          _meterPhotos.clear();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to submit report")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
 
@@ -610,41 +655,200 @@ class _UploadReportViewState extends State<UploadReportView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_isLoadingLocation) const LinearProgressIndicator(),
-          const Text("Photos are automatically geotagged.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic), textAlign: TextAlign.center),
+          if (_isLoading || _isSubmitting) const LinearProgressIndicator(),
+          const Text(
+            "Take photos with automatic GPS tagging",
+            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 20),
-          ElevatedButton.icon(onPressed: () => _takePhoto(true), icon: const Icon(Icons.camera_alt), label: const Text("Upload Composter Photo")),
-          _buildPhotoGrid(_composterPhotos),
+          ElevatedButton.icon(
+            onPressed: () => _takePhoto(true),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text("Composter Photo"),
+          ),
+          _buildPhotoGrid(_composterPhotos, "Composter"),
           const SizedBox(height: 20),
-          ElevatedButton.icon(onPressed: () => _takePhoto(false), icon: const Icon(Icons.electric_meter), label: const Text("Upload Meters Photo")),
-          _buildPhotoGrid(_meterPhotos),
+          ElevatedButton.icon(
+            onPressed: () => _takePhoto(false),
+            icon: const Icon(Icons.electric_meter),
+            label: const Text("Meter Photo"),
+          ),
+          _buildPhotoGrid(_meterPhotos, "Meter"),
           const SizedBox(height: 40),
-          ElevatedButton(onPressed: () { 
-             // BACKEND TODO: Upload these photos to server
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report Submitted!'))); 
-             setState(() { _composterPhotos.clear(); _meterPhotos.clear(); });
-          }, child: const Text("SUBMIT REPORT")),
+          ElevatedButton(
+            onPressed: _isSubmitting ? null : _submitReport,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: _isSubmitting
+                ? const Text("Submitting...")
+                : const Text("SUBMIT REPORT"),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPhotoGrid(List<TaggedPhoto> photos) {
+  Widget _buildPhotoGrid(List<TaggedPhoto> photos, String label) {
     if (photos.isEmpty) return const SizedBox.shrink();
-    return Container(
-      height: 160,
-      margin: const EdgeInsets.only(top: 10),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        Text(
+          "$label Photos:",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Container(
+          height: 160,
+          margin: const EdgeInsets.only(top: 10),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: photos.length,
+            itemBuilder: (context, index) {
+              return Container(
+                width: 140,
+                margin: const EdgeInsets.only(right: 8.0),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          photos[index].file,
+                          width: 140,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      photos[index].address ?? "",
+                      style: const TextStyle(fontSize: 10),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class MyReportsView extends StatefulWidget {
+  const MyReportsView({super.key});
+
+  @override
+  State<MyReportsView> createState() => _MyReportsViewState();
+}
+
+class _MyReportsViewState extends State<MyReportsView> {
+  List<Report> _reports = [];
+  bool _isLoading = true;
+  String _error = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final token = await ApiService.getToken();
+      if (token == null) {
+        setState(() {
+          _error = "Please login first";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await ApiService.getMyReports(token);
+      if (response != null) {
+        setState(() => _reports = response.reports);
+      } else {
+        setState(() => _error = "Failed to load reports");
+      }
+    } catch (e) {
+      setState(() => _error = "Error: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_error, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: _loadReports, child: const Text("Retry")),
+          ],
+        ),
+      );
+    }
+
+    if (_reports.isEmpty) {
+      return const Center(child: Text("No reports submitted yet"));
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadReports,
       child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: photos.length,
+        padding: const EdgeInsets.all(16),
+        itemCount: _reports.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 140,
-            margin: const EdgeInsets.only(right: 8.0),
-            child: Column(children: [
-                Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(photos[index].file, width: 140, fit: BoxFit.cover))),
-                Text(photos[index].address ?? "", style: const TextStyle(fontSize: 10), textAlign: TextAlign.center, maxLines: 3)
-            ]),
+          final report = _reports[index];
+          final date = report.submissionDate.toString().split(' ')[0];
+          final status = report.verificationStatus;
+          Color statusColor;
+          switch (status) {
+            case 'AUTO_APPROVED':
+            case 'OFFICER_APPROVED':
+              statusColor = Colors.green;
+              break;
+            case 'REJECTED':
+              statusColor = Colors.red;
+              break;
+            default:
+              statusColor = Colors.orange;
+          }
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ListTile(
+              leading: Icon(
+                status == 'PENDING' ? Icons.pending : Icons.check_circle,
+                color: statusColor,
+                size: 32,
+              ),
+              title: Text("Report #$date"),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Status: $status"),
+                  if (report.rebateAmount != null)
+                    Text("Rebate: Rs. ${report.rebateAmount}"),
+                ],
+              ),
+              isThreeLine: true,
+            ),
           );
         },
       ),
@@ -660,89 +864,101 @@ class MarketView extends StatefulWidget {
 }
 
 class _MarketViewState extends State<MarketView> {
-  // --- PASTE YOUR VARIABLES HERE ---
-  List<dynamic> officersList = [];
-  String status = "Ready to fetch";
+  List<SocietySummary> _societies = [];
+  bool _isLoading = true;
+  String _error = "";
 
-  // --- PASTE YOUR FUNCTION HERE ---
-  void loadData() async {
-    setState(() => status = "Logging in...");
-
-    // Step 1: Login
-    String? token = await ApiService.loginAndGetToken();
-
-    if (token != null) {
-      setState(() => status = "Login Success! Fetching Officers...");
-      
-      // Step 2: Use Token to Get Data
-      List<dynamic> officers = await ApiService.getPendingOfficers(token);
-
-      setState(() {
-        officersList = officers;
-        status = "Loaded ${officers.length} officers";
-      });
-    } else {
-      setState(() => status = "Login Failed. Check connection/IP.");
-    }
-  }
-
-  // OPTIONAL: Call it automatically when page loads
   @override
   void initState() {
     super.initState();
-    // loadData(); // Uncomment this if you want it to run immediately on open
+    _loadSocieties();
+  }
+
+  Future<void> _loadSocieties() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await ApiService.getSocieties(compostAvailable: true);
+      setState(() => _societies = response);
+    } catch (e) {
+      setState(() => _error = "Failed to load societies: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Market Place / Officers")),
-      body: Center(
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error.isNotEmpty) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Status Text
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                status,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            // Button to Trigger the API
-            ElevatedButton(
-              onPressed: loadData,
-              child: const Text("Fetch Data"),
-            ),
-
+            Text(_error, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 20),
-
-            // List of Officers
-            Expanded(
-              child: officersList.isEmpty
-                  ? const Text("No data yet")
-                  : ListView.builder(
-                      itemCount: officersList.length,
-                      itemBuilder: (context, index) {
-                        final officer = officersList[index];
-                        return Card(
-                          margin: const EdgeInsets.all(8),
-                          child: ListTile(
-                            leading: const Icon(Icons.person),
-                            title: Text(officer['name'] ?? "Unknown Name"),
-                            subtitle: Text(officer['email'] ?? "No Email"),
-                            trailing: officer['isVerified'] == true 
-                                ? const Icon(Icons.check, color: Colors.green)
-                                : const Icon(Icons.warning, color: Colors.orange),
-                          ),
-                        );
-                      },
-                    ),
+            ElevatedButton(
+              onPressed: _loadSocieties,
+              child: const Text("Retry"),
             ),
           ],
         ),
+      );
+    }
+
+    if (_societies.isEmpty) {
+      return const Center(child: Text("No societies with compost available"));
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadSocieties,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _societies.length,
+        itemBuilder: (context, index) {
+          final society = _societies[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ListTile(
+              leading: const Icon(
+                Icons.apartment,
+                color: Colors.green,
+                size: 32,
+              ),
+              title: Text(society.societyName),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(society.address.toDisplayString()),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.eco, size: 14, color: Colors.green),
+                      Text(
+                        " ${society.dailyCompostWeight}kg compost available",
+                      ),
+                    ],
+                  ),
+                  if (society.complianceStreak > 0)
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                        Text(" ${society.complianceStreak} day streak"),
+                      ],
+                    ),
+                ],
+              ),
+              isThreeLine: true,
+              trailing: IconButton(
+                icon: const Icon(Icons.phone),
+                onPressed: () {},
+              ),
+            ),
+          );
+        },
       ),
     );
   }

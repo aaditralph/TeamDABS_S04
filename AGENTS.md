@@ -183,54 +183,79 @@ export {
 ## Project Structure
 
 ```
-Backend/
-├── config/
-│   ├── database.ts          # MongoDB connection
-│   ├── roles_list.ts        # Role constants (admin:11, officer:12, resident:13, society:14, customer:15)
-│   └── verification.ts      # Verification config (thresholds, expiry days, n8n webhook URL)
-├── controllers/
-│   ├── officerController.ts    # BMC Officer auth & profile
-│   ├── residentController.ts   # Resident routes (public society access, leaderboard)
-│   ├── societyController.ts    # Society worker auth & profile
-│   ├── customerController.ts   # Customer auth & addresses
-│   ├── adminController.ts      # Admin management & approvals
-│   ├── authController.ts       # Legacy auth (backward compat)
-│   └── bmcController.ts        # BMC report review & dashboard
-├── middleware/
-│   ├── auth.ts              # JWT verification
-│   ├── authorize.ts         # Role-based authorization middleware
-│   ├── upload.ts            # File upload (officer docs, verification images)
-│   ├── rateLimiter.ts       # Rate limiting
-│   ├── validate.ts          # Zod validation middleware
-│   └── errorHandler.ts      # Global error handling
-├── models/
-│   ├── User.ts              # User model with role-specific fields
-│   ├── SocietyAccount.ts    # Society account with tax/rebate fields
-│   └── Report.ts            # Report model with verification & rebate data
-├── routes/
-│   ├── officer.ts           # /api/officer/* routes
-│   ├── resident.ts          # /api/resident/* (public society access, leaderboard)
-│   ├── society.ts           # /api/society/* routes
-│   ├── customer.ts          # /api/customer/* routes
-│   ├── admin.ts             # /admin/* routes
-│   ├── bmc.ts               # /api/bmc/* routes (officer dashboard)
-│   ├── verification.ts      # /api/verification/* routes
-│   ├── n8nWebhook.ts        # /api/n8n-callback (n8n workflow response)
-│   └── publicSociety.ts     # Public society routes (no auth required)
-├── services/
-│   ├── notificationService.ts    # In-app notifications
-│   ├── schedulerService.ts      # Auto-processing expired reports
-│   ├── detectionService.ts      # Python script execution
-│   ├── n8nService.ts           # n8n webhook triggers
-│   └── index.ts                 # Service exports
-├── uploads/
-│   ├── officers/           # Officer document uploads
-│   └── verification/       # Verification images (meter/composter)
-├── src/
-│   └── app.ts              # Express app setup
-├── index.ts                # Entry point
-├── docker-compose.yml      # MongoDB container
-└── tsconfig.json          # TypeScript configuration
+Genesis/
+├── Backend/
+│   ├── config/
+│   │   ├── database.ts          # MongoDB connection
+│   │   ├── roles_list.ts        # Role constants (admin:11, officer:12, resident:13, society:14, customer:15)
+│   │   ├── seeder.ts            # Admin seeder (DABS user auto-creation)
+│   │   └── verification.ts      # Verification config (thresholds, expiry days, n8n webhook URL)
+│   ├── controllers/
+│   │   ├── adminController.ts      # Admin management & approvals
+│   │   ├── authController.ts       # Legacy auth (backward compat)
+│   │   ├── bmcController.ts        # BMC officer dashboard & report review
+│   │   ├── customerController.ts   # Customer auth & addresses
+│   │   ├── officerController.ts    # BMC Officer auth & profile
+│   │   ├── residentController.ts   # Resident routes (public society access, leaderboard)
+│   │   ├── societyController.ts    # Society worker auth & profile
+│   │   └── verificationController.ts # Verification report submission & processing
+│   ├── middleware/
+│   │   ├── auth.ts              # JWT verification
+│   │   ├── authorize.ts         # Role-based authorization middleware
+│   │   ├── errorHandler.ts      # Global error handling
+│   │   ├── rateLimiter.ts       # Rate limiting
+│   │   ├── upload.ts            # File upload (officer docs, verification images)
+│   │   └── validate.ts          # Zod validation middleware
+│   ├── models/
+│   │   ├── EvidenceLog.ts       # IoT device evidence logs
+│   │   ├── IoTDevice.ts         # IoT device management
+│   │   ├── Report.ts            # Report model with verification & rebate data
+│   │   ├── SocietyAccount.ts    # Society account with tax/rebate fields
+│   │   └── User.ts              # User model with role-specific fields
+│   ├── routes/
+│   │   ├── admin.ts             # /admin/* routes
+│   │   ├── api/                 # Additional API routes
+│   │   │   ├── marketRoutes.ts      # Marketplace routes
+│   │   │   ├── officerRoutes.ts     # Officer-specific routes
+│   │   │   ├── residentRoutes.ts    # Resident-specific routes
+│   │   │   └── societyRoutes.ts      # Society-specific routes
+│   │   ├── bmc.ts               # /api/bmc/* routes (officer dashboard)
+│   │   ├── customer.ts          # /api/customer/* routes
+│   │   ├── n8nWebhook.ts        # /api/n8n-callback (n8n workflow response)
+│   │   ├── officer.ts           # /api/officer/* routes
+│   │   ├── publicSociety.ts     # Public society routes (no auth required)
+│   │   ├── reports.ts           # /api/reports/* routes
+│   │   ├── resident.ts          # /api/resident/* routes (leaderboard, society access)
+│   │   ├── society.ts           # /api/society/* routes
+│   │   └── verification.ts      # /api/verification/* routes
+│   ├── services/
+│   │   ├── detectionService.ts      # Python script execution for detection
+│   │   ├── n8nService.ts           # n8n webhook triggers
+│   │   ├── notificationService.ts    # In-app notifications
+│   │   ├── schedulerService.ts      # Auto-processing expired reports
+│   │   └── index.ts                 # Service exports
+│   ├── uploads/
+│   │   ├── officers/           # Officer document uploads (temp until approval)
+│   │   └── verification/       # Verification images (meter/composter)
+│   ├── src/
+│   │   └── app.ts              # Express app setup
+│   ├── types/                   # Shared TypeScript types (TODO: populate)
+│   ├── utils/
+│   │   ├── jwt.ts              # JWT token generation & verification
+│   │   └── validation.ts       # Zod validation schemas
+│   ├── python/                 # Python scripts for AI detection
+│   ├── index.ts                # Entry point
+│   ├── docker-compose.yml      # MongoDB container
+│   └── tsconfig.json          # TypeScript configuration
+├── Admin-Frontend/             # BMC Officer dashboard frontend
+├── BMC/                       # BMC-related documentation/config
+├── society_app/               # Society management mobile app
+├── auth_app/                  # Authentication app
+├── marketplace/               # Marketplace directory
+├── Recommendation Workflow/   # n8n workflow configurations
+├── Weights/                   # AI model weights
+├── images/                    # Project images
+└── python_script/            # Python detection scripts
 ```
 
 ## Role-Based Authentication System
@@ -382,6 +407,26 @@ curl -X PATCH http://localhost:3000/api/bmc/review/REPORT_ID \
 - **File Upload:** Officers (PDF/JPG/PNG, 5MB), Verification (JPG/PNG/WebP, 10MB)
 - **n8n Integration:** Set `N8N_WEBHOOK_URL` in `.env` for automated verification
 - **Compliance Streak:** Incremented when reports are approved; resets if no report submitted
+- **Email Uniqueness:** Email is unique per role, allowing same email across different roles
+- **Document Cleanup:** Officer documents are deleted from filesystem after admin approval
+
+## Pending Tasks
+
+### Backend
+- [ ] Populate `types/` directory with shared TypeScript types
+- [ ] Create `routes/auth.ts` for legacy authentication routes (if needed)
+- [ ] Add proper types for EvidenceLog, IoTDevice models
+- [ ] Integrate routes/api/* with main route files or document separately
+- [ ] Add validation schemas for all endpoints in utils/validation.ts
+
+### General
+- [ ] Complete Python AI detection scripts in python/ directory
+- [ ] Set up Weights/ directory with trained models
+- [ ] Configure Recommendation Workflow n8n templates
+- [ ] Complete Admin-Frontend dashboard
+- [ ] Complete society_app mobile app
+- [ ] Complete auth_app authentication app
+- [ ] Set up marketplace directory
 
 ## Common Issues
 
