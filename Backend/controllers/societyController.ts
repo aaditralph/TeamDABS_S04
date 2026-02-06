@@ -6,8 +6,18 @@ import ROLES_LIST from "../config/roles_list.js";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, phone, societyName, address, geoLockCoordinates } =
-      req.body;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      societyName,
+      address,
+      geoLockCoordinates,
+      propertyTaxEstimate,
+      electricMeterSerialNumber,
+      dailyCompostWeight,
+    } = req.body;
 
     const existingUser = await User.findOne({
       email: email.toLowerCase(),
@@ -33,6 +43,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         phone,
         address,
         geoLockCoordinates,
+        propertyTaxEstimate: propertyTaxEstimate || 0,
+        electricMeterSerialNumber: electricMeterSerialNumber || "",
+        dailyCompostWeight: dailyCompostWeight || 0,
         walletBalance: 0,
         totalRebatesEarned: 0,
         complianceStreak: 0,
@@ -77,6 +90,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         society: {
           id: societyAccount._id,
           societyName: societyAccount.societyName,
+          propertyTaxEstimate: societyAccount.propertyTaxEstimate,
+          electricMeterSerialNumber: societyAccount.electricMeterSerialNumber,
+          dailyCompostWeight: societyAccount.dailyCompostWeight,
           isVerified: societyAccount.isVerified,
         },
       },
@@ -301,6 +317,65 @@ export const getSocietyInfo = async (
     res.status(500).json({
       success: false,
       message: "Error fetching society info",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const updateCompostWeight = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = (req as any).user?.userId;
+    const { dailyCompostWeight } = req.body;
+
+    if (dailyCompostWeight === undefined || dailyCompostWeight < 0) {
+      res.status(400).json({
+        success: false,
+        message: "Valid daily compost weight is required",
+      });
+      return;
+    }
+
+    const societyWorker = await User.findOne({
+      _id: userId,
+      role: ROLES_LIST.society,
+    });
+
+    if (!societyWorker || !societyWorker.societyId) {
+      res.status(404).json({
+        success: false,
+        message: "Society not found",
+      });
+      return;
+    }
+
+    const societyAccount = await SocietyAccount.findByIdAndUpdate(
+      societyWorker.societyId,
+      { dailyCompostWeight },
+      { new: true }
+    );
+
+    if (!societyAccount) {
+      res.status(404).json({
+        success: false,
+        message: "Society account not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Daily compost weight updated successfully",
+      data: {
+        dailyCompostWeight: societyAccount.dailyCompostWeight,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating compost weight",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

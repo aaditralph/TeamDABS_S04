@@ -61,6 +61,7 @@ export interface IReportDocument extends mongoose.Document {
   officerComments?: string;
   rejectionReason?: string;
   rebateAmount?: number;
+  approvedDays?: number;
   expiresAt: Date;
   notifiedOfficers: mongoose.Types.ObjectId[];
   notificationSentAt?: Date;
@@ -236,6 +237,10 @@ const ReportSchema = new mongoose.Schema<IReportDocument>(
       maxlength: 500,
     },
     rebateAmount: {
+      type: Number,
+      min: 0,
+    },
+    approvedDays: {
       type: Number,
       min: 0,
     },

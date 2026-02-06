@@ -12,6 +12,7 @@ import bmcRoutes from "../routes/bmc.js";
 import reportsRoutes from "../routes/reports.js";
 import verificationRoutes from "../routes/verification.js";
 import n8nWebhookRoutes from "../routes/n8nWebhook.js";
+import publicSocietyRoutes from "../routes/publicSociety.js";
 import { errorHandler, notFound } from "../middleware/errorHandler.js";
 
 dotenv.config();
@@ -40,6 +41,9 @@ app.use("/admin", adminRoutes);
 
 // Webhook routes (n8n)
 app.use("/api", n8nWebhookRoutes);
+
+// Public routes (no auth required)
+app.use("/api/public", publicSocietyRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Team DABS API", version: "1.0.0" });

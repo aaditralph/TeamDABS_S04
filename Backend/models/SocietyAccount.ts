@@ -18,6 +18,9 @@ export interface ISocietyAccountDocument extends mongoose.Document {
   phone: string;
   address: ISocietyAddress;
   geoLockCoordinates: IGeoLockCoordinates;
+  propertyTaxEstimate: number;
+  electricMeterSerialNumber: string;
+  dailyCompostWeight: number;
   walletBalance: number;
   totalRebatesEarned: number;
   lastComplianceDate?: Date;
@@ -99,6 +102,21 @@ const SocietyAccountSchema = new mongoose.Schema<ISocietyAccountDocument>(
     geoLockCoordinates: {
       type: GeoLockCoordinatesSchema,
       required: true,
+    },
+    propertyTaxEstimate: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    electricMeterSerialNumber: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    dailyCompostWeight: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     walletBalance: {
       type: Number,

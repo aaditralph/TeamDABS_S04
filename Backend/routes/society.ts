@@ -4,6 +4,7 @@ import {
   login,
   getMe,
   getSocietyInfo,
+  updateCompostWeight,
 } from "../controllers/societyController.js";
 import { protect } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -24,5 +25,6 @@ router.post(
 router.post("/login", authLimiter, validate(societyLoginSchema), login);
 router.get("/me", protect, getMe);
 router.get("/society", protect, getSocietyInfo);
+router.patch("/society/compost-weight", protect, updateCompostWeight);
 
 export default router;

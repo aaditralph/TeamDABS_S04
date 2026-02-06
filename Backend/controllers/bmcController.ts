@@ -80,7 +80,7 @@ export const submitReview = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { action, comments, rebateAmount, verificationImages } = req.body;
+    const { action, comments, verificationImages } = req.body;
     const officerId = (req as any).user?.userId;
 
     if (!["APPROVE", "REJECT"].includes(action)) {
@@ -125,14 +125,22 @@ export const submitReview = async (
       }));
     }
 
-    if (action === "APPROVE" && rebateAmount) {
-      report.rebateAmount = rebateAmount;
-
+    if (action === "APPROVE") {
       const societyAccount = await SocietyAccount.findById(report.societyAccountId);
 
       if (societyAccount) {
-        societyAccount.walletBalance += rebateAmount;
-        societyAccount.totalRebatesEarned += rebateAmount;
+        const submissionDate = new Date(report.submissionDate);
+        const approvedDate = new Date(report.reviewTimestamp);
+        const diffTime = approvedDate.getTime() - submissionDate.getTime();
+        const approvedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        report.approvedDays = approvedDays;
+
+        const rebateAmount = societyAccount.propertyTaxEstimate * 0.05 * (approvedDays / 365);
+        report.rebateAmount = Math.round(rebateAmount * 100) / 100;
+
+        societyAccount.walletBalance += report.rebateAmount;
+        societyAccount.totalRebatesEarned += report.rebateAmount;
         societyAccount.lastComplianceDate = new Date();
         await societyAccount.save();
       }
@@ -151,6 +159,7 @@ export const submitReview = async (
         approvalType: report.approvalType,
         reviewTimestamp: report.reviewTimestamp,
         rebateAmount: report.rebateAmount,
+        approvedDays: report.approvedDays,
       },
     });
   } catch (error) {

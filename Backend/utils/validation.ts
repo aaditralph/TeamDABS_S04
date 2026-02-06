@@ -63,6 +63,9 @@ export const societyRegisterSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   societyName: z.string().min(1, "Society name is required"),
   address: societyAddressSchema,
+  propertyTaxEstimate: z.number().min(0, "Property tax estimate must be positive"),
+  electricMeterSerialNumber: z.string().min(1, "Electric meter serial number is required"),
+  dailyCompostWeight: z.number().min(0, "Daily compost weight must be positive").optional(),
 });
 
 export const societyLoginSchema = z.object({

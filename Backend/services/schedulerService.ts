@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Report from "../models/Report.js";
+import Report, { IReportDocument } from "../models/Report.js";
 import SocietyAccount from "../models/SocietyAccount.js";
 import User from "../models/User.js";
 import { VERIFICATION_CONFIG } from "../config/verification.js";
@@ -36,6 +36,7 @@ export const autoProcessExpiredReports = async (): Promise<AutoProcessResult> =>
           _id: mongoose.Types.ObjectId;
           societyName: string;
           walletBalance: number;
+          propertyTaxEstimate: number;
         };
 
         const threshold = VERIFICATION_CONFIG.AUTO_APPROVAL_THRESHOLD;
@@ -46,7 +47,7 @@ export const autoProcessExpiredReports = async (): Promise<AutoProcessResult> =>
           report.autoProcessedAt = new Date();
           report.autoProcessedBy = "SYSTEM_AUTO_PROCESSOR";
 
-          const rebateAmount = await calculateRebateAmount(report.aiTrustScore, report.verificationProbability);
+          const rebateAmount = await calculateRebateAmount(report, societyAccount);
 
           if (rebateAmount > 0) {
             report.rebateAmount = rebateAmount;
@@ -178,14 +179,24 @@ export const sendPendingReportNotifications = async (): Promise<{
 };
 
 async function calculateRebateAmount(
-  aiTrustScore: number,
-  verificationProbability: number
+  report: IReportDocument,
+  societyAccount: any
 ): Promise<number> {
-  const baseRebate = 100;
-  const trustBonus = aiTrustScore * 0.5;
-  const probabilityBonus = verificationProbability * 0.3;
+  if (!societyAccount.propertyTaxEstimate || societyAccount.propertyTaxEstimate <= 0) {
+    return 0;
+  }
 
-  return Math.round(baseRebate + trustBonus + probabilityBonus);
+  const submissionDate = new Date(report.submissionDate);
+  const approvedDate = report.autoProcessedAt ? new Date(report.autoProcessedAt) : new Date();
+
+  const diffTime = approvedDate.getTime() - submissionDate.getTime();
+  const approvedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  report.approvedDays = approvedDays;
+
+  const rebate = societyAccount.propertyTaxEstimate * 0.05 * (approvedDays / 365);
+
+  return Math.round(rebate * 100) / 100;
 }
 
 export const startScheduler = (): void => {
