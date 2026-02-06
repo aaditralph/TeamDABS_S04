@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
 import officerRoutes from "../routes/officer.js";
-import residentRoutes from "../routes/resident.js";
 import societyRoutes from "../routes/society.js";
 import customerRoutes from "../routes/customer.js";
 import adminRoutes from "../routes/admin.js";
@@ -13,6 +12,7 @@ import reportsRoutes from "../routes/reports.js";
 import verificationRoutes from "../routes/verification.js";
 import n8nWebhookRoutes from "../routes/n8nWebhook.js";
 import publicSocietyRoutes from "../routes/publicSociety.js";
+import residentRoutes from "../routes/resident.js";
 import { errorHandler, notFound } from "../middleware/errorHandler.js";
 
 dotenv.config();

@@ -78,11 +78,9 @@ def analyze_meter_reading(image_path):
 
 # --- 4. EXECUTION BLOCK ---
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print(json.dumps({"status": "error", "message": "No image path provided"}))
-        sys.exit(1)
-
-    image_path = sys.argv[1]
-    result = analyze_meter_reading(image_path)
+    # Use 'r' before the path to handle Windows backslashes correctly
+    my_image_path = 
+    
+    print("--- Processing Meter Image ---")
+    result = analyze_meter_reading(my_image_path)
     print(result)
