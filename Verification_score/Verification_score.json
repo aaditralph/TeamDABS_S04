@@ -1,0 +1,193 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "89774501-6fa5-4a2c-9aaa-808cb694cda3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        -16
+      ],
+      "id": "23203cd9-a8db-45f8-8baf-0def546d43ed",
+      "name": "Webhook",
+      "webhookId": "89774501-6fa5-4a2c-9aaa-808cb694cda3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the multipart input\nconst inputs = $input.first();\nconst body = JSON.parse(inputs.json.body.json_payload);\n\nreturn {\n  json: {\n    ...body, // Spreads reportId, machine_exists, etc.\n  },\n  binary: {\n    // We preserve the specific names we sent from Python\n    compost_evidence: inputs.binary.compost_file, \n    meter_evidence: inputs.binary.meter_file\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        -16
+      ],
+      "id": "8410e91f-8df9-44d8-add5-2283f7c82516",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Look at this electric meter. Find the Serial Number and the kWh Reading. Return ONLY valid JSON: {\"scanned_serial\": \"...\", \"reading_kwh\": 123}. If you cannot see them, return null values.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        112
+      ],
+      "id": "c86611dd-732e-475b-a6c4-89ffa1020164",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WRHcyPx957A7oPBt",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Check whether this is a compost machine or not.",
+        "imageUrls": "data:image/jpeg;base64,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",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        -96
+      ],
+      "id": "583da740-a605-4dad-8f63-496b897cd7a6",
+      "name": "Analyze an image1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WRHcyPx957A7oPBt",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "72576042-1b96-42fb-8c5f-853a3e4c05c6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# The \"Judge\" Script: Visual Verification Only\n\n# 1. Initialize Variables\nmachine_exists = False\nregistered_serial = \"UNKNOWN\"\nscanned_serial = \"UNKNOWN\"\nreading_kwh = 0\nsociety_id = \"UNKNOWN\"\nissues = []\n\n# 2. Extract Data from the Merge Node (Loop through 2 branches)\nitems = _input.all()\n\nfor item in items:\n    data = item.json\n    \n    # Global Info\n    if 'society_id' in data: society_id = data['society_id']\n    if 'registered_serial' in data: registered_serial = data['registered_serial']\n\n    # Branch 1: YOLO Logic\n    if 'machine_exists' in data:\n        # Handle \"true\"/\"True\"/True variations\n        if str(data['machine_exists']).lower() == 'true':\n            machine_exists = True\n\n    # Branch 2: Gemini Logic\n    if 'scanned_serial' in data: scanned_serial = data['scanned_serial']\n    if 'reading_kwh' in data: \n        try:\n            reading_kwh = float(data['reading_kwh'])\n        except:\n            reading_kwh = 0\n\n# 3. SCORING ENGINE\nscore = 100\n\n# Rule A: Machine Presence (Critical)\nif not machine_exists:\n    score = 0\n    issues.append(\"CRITICAL: Machine not detected in image.\")\nelse:\n    # Rule B: Serial Number Check\n    clean_reg = str(registered_serial).strip().upper()\n    clean_scan = str(scanned_serial).strip().upper()\n    \n    # logic: If gemini sees nothing (UNKNOWN), penalize but don't fail completely\n    if clean_scan == \"UNKNOWN\":\n        score -= 15\n        issues.append(\"Warning: Gemini could not read Serial Number.\")\n    elif clean_reg != clean_scan:\n        score -= 50\n        issues.append(f\"Serial Mismatch: Expected '{clean_reg}', Found '{clean_scan}'\")\n\n    # Rule C: Usage Threshold\n    if reading_kwh < 25:\n        score -= 20\n        issues.append(f\"Low Usage Warning: {reading_kwh} kWh\")\n\n# 4. Final Verdict\nfinal_score = max(0, score)\nverdict = \"VERIFIED\"\nif final_score < 85: verdict = \"FLAGGED\"\nif final_score < 50: verdict = \"REJECTED\"\n\n# 5. Output\nreturn {\n    \"audit_report\": {\n        \"society_id\": society_id,\n        \"timestamp\": \"2026-02-07T10:00:00Z\",\n        \"final_verdict\": verdict,\n        \"verification_score\": final_score,\n        \"evidence\": {\n            \"machine_present\": machine_exists,\n            \"serial_match\": (clean_reg == clean_scan),\n            \"meter_reading\": reading_kwh\n        },\n        \"issues_found\": issues\n    }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "b9f33866-e58e-43b2-98e9-d7ad2aa8f115",
+      "name": "Code in Python"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analyze an image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Analyze an image1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c5a62d20-5e42-474e-b689-8b3027f4e9ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f9385a8ad0f45c3a418e97a358eec62e2c3dbd7a31e3b8fadc69828cdc3fbd50"
+  },
+  "id": "82e5vg5Ghs0bLBg6c8pJe",
+  "tags": []
+}
