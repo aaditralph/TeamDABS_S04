@@ -50,7 +50,7 @@ const reportFormDataSchema = z.object({
 export const reportSubmissionSchema = z.object({
   societyId: z.string().length(24, "Invalid society ID format"),
   submissionImages: z
-    array(
+    .array(
       z.object({
         url: z.string().url("Invalid image URL"),
         gpsMetadata: z

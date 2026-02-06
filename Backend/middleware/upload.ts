@@ -53,10 +53,26 @@ const imageFileFilter = (
   }
 };
 
+// File filter for officer documents (PDF, JPG, PNG)
+const documentFileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allowedTypes = [".pdf", ".jpg", ".jpeg", ".png"];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (allowedTypes.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only PDF, JPG, and PNG files are allowed."));
+  }
+};
+
 // Configure multer for officers
 export const upload = multer({
   storage: officersStorage,
-  fileFilter: fileFilter,
+  fileFilter: documentFileFilter,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880"),
   },

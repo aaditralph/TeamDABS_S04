@@ -89,3 +89,8 @@ export const processN8NResponse = async (
     };
   }
 };
+
+export default {
+  triggerN8NWorkflow,
+  processN8NResponse,
+};

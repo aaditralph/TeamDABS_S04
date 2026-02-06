@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Report, { IReportDocument } from "../models/Report.js";
+import Report, { type IReportDocument } from "../models/Report.js";
 import SocietyAccount from "../models/SocietyAccount.js";
 import User from "../models/User.js";
 import { VERIFICATION_CONFIG } from "../config/verification.js";

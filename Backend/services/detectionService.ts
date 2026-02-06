@@ -130,3 +130,9 @@ export const processReportImages = async (
     composterResults,
   };
 };
+
+export default {
+  runMeterDetection,
+  runComposterDetection,
+  processReportImages,
+};
