@@ -28,7 +28,6 @@ const ReportDetail = () => {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [reviewAction, setReviewAction] = useState(null)
   const [reviewComment, setReviewComment] = useState('')
-  const [rebateAmount, setRebateAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -56,8 +55,7 @@ const ReportDetail = () => {
     try {
       const data = {
         action: reviewAction,
-        comments: reviewComment || undefined,
-        rebateAmount: reviewAction === 'APPROVE' && rebateAmount ? parseFloat(rebateAmount) : undefined
+        comments: reviewComment || undefined
       }
       
       await reportsAPI.submitReview(id, data)
@@ -75,7 +73,6 @@ const ReportDetail = () => {
   const openReviewModal = (action) => {
     setReviewAction(action)
     setReviewComment('')
-    setRebateAmount('')
     setShowReviewModal(true)
   }
 
@@ -181,12 +178,12 @@ const ReportDetail = () => {
         </div>
       </div>
 
-      {/* AI Score Card */}
+      {/* Verification Score Card */}
       {(report.aiTrustScore || report.verificationProbability) && (
         <div className="card bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-emerald-200">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Analysis</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Verification Analysis</h3>
               <p className="text-gray-600">
                 This report has been analyzed by our AI system based on image quality, GPS data, and IoT sensor readings.
               </p>
@@ -197,7 +194,7 @@ const ReportDetail = () => {
                   <p className={`text-5xl font-bold ${getScoreColor(report.aiTrustScore)}`}>
                     {report.aiTrustScore}%
                   </p>
-                  <p className="text-gray-500 text-sm mt-1">Trust Score</p>
+                  <p className="text-gray-500 text-sm mt-1">Verification Score</p>
                 </div>
               )}
               {report.verificationProbability && (
@@ -405,12 +402,7 @@ const ReportDetail = () => {
                   <span className="text-sm text-gray-500">Review Date</span>
                   <span className="font-semibold">{formatDate(report.reviewTimestamp)}</span>
                 </div>
-                {report.rebateAmount && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Rebate Amount</span>
-                    <span className="font-semibold text-green-600">₹{report.rebateAmount}</span>
-                  </div>
-                )}
+
                 {report.officerComments && (
                   <div className="pt-3 border-t border-gray-200">
                     <p className="text-sm text-gray-500 mb-1">Comments</p>
@@ -464,21 +456,7 @@ const ReportDetail = () => {
                 />
               </div>
 
-              {reviewAction === 'APPROVE' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rebate Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={rebateAmount}
-                    onChange={(e) => setRebateAmount(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                    placeholder="Enter rebate amount"
-                    min="0"
-                  />
-                </div>
-              )}
+
             </div>
 
             <div className="flex gap-3 mt-6">

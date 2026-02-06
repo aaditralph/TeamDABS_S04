@@ -320,7 +320,7 @@ const Dashboard = () => {
                 {report.aiTrustScore && (
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-900">{report.aiTrustScore}%</p>
-                    <p className="text-xs text-gray-500">AI Trust Score</p>
+                    <p className="text-xs text-gray-500">Verification Score</p>
                   </div>
                 )}
               </div>

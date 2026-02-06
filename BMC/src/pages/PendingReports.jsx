@@ -144,8 +144,8 @@ const PendingReports = () => {
         <div className="text-sm text-blue-800">
           <p className="font-semibold mb-1">Review Guidelines</p>
           <p>
-            Reports with AI Trust Score ≥ {threshold}% are auto-approved. 
-            Please prioritize reports with low AI scores or those expiring soon.
+            Reports with Verification Score ≥ {threshold}% are auto-approved. 
+            Please prioritize reports with low verification scores or those expiring soon.
           </p>
         </div>
       </div>
@@ -200,7 +200,7 @@ const PendingReports = () => {
                         <h3 className="text-lg font-bold text-gray-900">{societyName}</h3>
                         {report.aiTrustScore && (
                           <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getScoreColor(report.aiTrustScore)}`}>
-                            AI Score: {report.aiTrustScore}%
+                            Verification Score: {report.aiTrustScore}%
                           </span>
                         )}
                       </div>

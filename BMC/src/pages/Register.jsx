@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react'
-import { Shield, Lock, Mail, User, FileText, Upload, Eye, EyeOff, CheckCircle } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Shield, Lock, Mail, User, FileText, Upload, Eye, EyeOff, CheckCircle, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { authAPI } from '../services/api'
 
-const Register = ({ onLogin }) => {
-  const navigate = useNavigate()
+const Register = () => {
   const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -50,50 +50,59 @@ const Register = ({ onLogin }) => {
     }
 
     try {
-      // For demo purposes - simulate API call
-      // In production, use FormData and axios.post('/api/officer/register', formData)
+      // Create FormData for multipart/form-data submission
+      const submitData = new FormData()
+      submitData.append('name', formData.name)
+      submitData.append('email', formData.email)
+      submitData.append('password', formData.password)
+      submitData.append('phone', formData.phone)
+      submitData.append('documentType', formData.documentType)
+      submitData.append('document', document)
+
+      // Send to backend
+      const response = await authAPI.register(submitData)
       
-      setTimeout(() => {
+      if (response.data.success) {
         setSuccess(true)
-        setLoading(false)
-        
-        // Auto login after successful registration
-        setTimeout(() => {
-          const userData = {
-            token: 'officer-token-' + Date.now(),
-            user: {
-              id: 'officer-' + Date.now(),
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              role: 12,
-              isVerified: true
-            }
-          }
-          onLogin(userData)
-        }, 2000)
-      }, 1500)
+      } else {
+        setError(response.data.message || 'Registration failed')
+      }
     } catch (err) {
-      setError('Registration failed. Please try again.')
+      console.error('Registration error:', err)
+      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+    } finally {
       setLoading(false)
     }
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sidebar via-slate-800 to-primary flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-700 via-slate-800 to-emerald-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="card bg-white/95 backdrop-blur-sm shadow-2xl text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl mb-6 shadow-lg">
-              <CheckCircle className="w-10 h-10 text-white" />
+          <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-8 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl mb-6 shadow-lg">
+              <Clock className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
-            <p className="text-gray-600 mb-6">
-              Your account has been created. Redirecting to dashboard...
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Submitted!</h2>
+            <p className="text-gray-600 mb-4">
+              Your account has been created and is pending admin approval.
             </p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-emerald-500 h-2 rounded-full animate-pulse w-full"></div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-800">
+                <strong>What happens next?</strong>
+              </p>
+              <ul className="text-sm text-yellow-700 mt-2 text-left space-y-1">
+                <li>• Admin will review your application</li>
+                <li>• You'll be notified once approved</li>
+                <li>• Then you can login to the portal</li>
+              </ul>
             </div>
+            <Link 
+              to="/login" 
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+            >
+              Go to Login
+            </Link>
           </div>
         </div>
       </div>
@@ -101,11 +110,11 @@ const Register = ({ onLogin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sidebar via-slate-800 to-primary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-700 via-slate-800 to-emerald-900 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        <div className="card bg-white/95 backdrop-blur-sm shadow-2xl">
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-8">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl mb-4 shadow-lg">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Officer Registration</h1>
@@ -130,7 +139,7 @@ const Register = ({ onLogin }) => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                   placeholder="Enter your full name"
                   required
                 />
@@ -148,7 +157,7 @@ const Register = ({ onLogin }) => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                     placeholder="Email address"
                     required
                   />
@@ -163,7 +172,7 @@ const Register = ({ onLogin }) => {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                   placeholder="Phone number"
                   required
                 />
@@ -181,7 +190,7 @@ const Register = ({ onLogin }) => {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                     placeholder="Password"
                     required
                   />
@@ -205,7 +214,7 @@ const Register = ({ onLogin }) => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                     placeholder="Confirm password"
                     required
                   />
@@ -229,7 +238,7 @@ const Register = ({ onLogin }) => {
                 <select
                   value={formData.documentType}
                   onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors appearance-none bg-white"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors appearance-none bg-white"
                   required
                 >
                   <option value="Aadhar">Aadhar Card</option>
@@ -243,14 +252,14 @@ const Register = ({ onLogin }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload ID Document
+                Upload ID Document <span className="text-red-500">*</span>
               </label>
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors ${
                   document 
                     ? 'border-emerald-500 bg-emerald-50' 
-                    : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                    : 'border-gray-300 hover:border-emerald-500 hover:bg-emerald-50/50'
                 }`}
               >
                 <input
@@ -282,18 +291,25 @@ const Register = ({ onLogin }) => {
               </div>
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Important:</strong> Your account will require admin approval before you can access the portal. 
+                You'll receive a notification once approved.
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3.5 text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Registering...</span>
+                  <span>Submitting...</span>
                 </span>
               ) : (
-                'Register'
+                'Submit Registration'
               )}
             </button>
           </form>
@@ -301,14 +317,10 @@ const Register = ({ onLogin }) => {
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:text-primary-dark font-semibold">
+              <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold">
                 Sign in here
               </Link>
             </p>
-          </div>
-
-          <div className="mt-4 text-center text-sm text-gray-500">
-            <p>Your account will require admin approval</p>
           </div>
         </div>
       </div>
