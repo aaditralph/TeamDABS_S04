@@ -70,7 +70,7 @@ const UserSchema = new mongoose.Schema<IUserDocument>(
     },
     societyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "BwgSociety",
+      ref: "SocietyAccount",
     },
     documentType: {
       type: String,

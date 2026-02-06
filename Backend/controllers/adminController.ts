@@ -1,15 +1,13 @@
 import type { Request, Response } from "express";
 import User from "../models/User.js";
+import SocietyAccount from "../models/SocietyAccount.js";
 import { generateToken } from "../utils/jwt.js";
 import ROLES_LIST from "../config/roles_list.js";
-import { deleteFile, sendFile } from "../middleware/upload.js";
-import fs from "fs";
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Use case-insensitive search since email is stored as lowercase
     const admin = await User.findOne({
       email: { $regex: `^${email}$`, $options: "i" },
       role: ROLES_LIST.admin,
@@ -61,10 +59,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// Get pending officers
 export const getPendingOfficers = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const officers = await User.find({
@@ -88,10 +85,9 @@ export const getPendingOfficers = async (
   }
 };
 
-// Approve officer
 export const approveOfficer = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -111,16 +107,9 @@ export const approveOfficer = async (
       return;
     }
 
-    // Delete the document file
-    if (officer.documentUrl && fs.existsSync(officer.documentUrl)) {
-      deleteFile(officer.documentUrl);
-    }
-
-    // Update officer
     officer.isVerified = true;
     officer.verificationDate = new Date();
-    officer.verifiedBy = adminId;
-    officer.documentUrl = undefined; // Clear the document URL
+    officer.verifiedBy = adminId as any;
     await officer.save();
 
     res.status(200).json({
@@ -145,10 +134,9 @@ export const approveOfficer = async (
   }
 };
 
-// Reject officer
 export const rejectOfficer = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -167,12 +155,6 @@ export const rejectOfficer = async (
       return;
     }
 
-    // Delete the document file
-    if (officer.documentUrl && fs.existsSync(officer.documentUrl)) {
-      deleteFile(officer.documentUrl);
-    }
-
-    // Delete the officer account
     await User.deleteOne({ _id: id });
 
     res.status(200).json({
@@ -188,22 +170,45 @@ export const rejectOfficer = async (
   }
 };
 
-// Get pending societies
 export const getPendingSocieties = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const societies = await User.find({
+    const pendingWorkers = await User.find({
       role: ROLES_LIST.society,
       isVerified: false,
       isActive: true,
     }).select("-password");
 
+    const societiesWithWorkers = await Promise.all(
+      pendingWorkers.map(async (worker) => {
+        const societyAccount = await SocietyAccount.findById(worker.societyId);
+        return {
+          worker: {
+            id: worker._id,
+            name: worker.name,
+            email: worker.email,
+            phone: worker.phone,
+            createdAt: worker.createdAt,
+          },
+          society: societyAccount
+            ? {
+                id: societyAccount._id,
+                societyName: societyAccount.societyName,
+                email: societyAccount.email,
+                phone: societyAccount.phone,
+                address: societyAccount.address,
+              }
+            : null,
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
       data: {
-        societies,
+        societies: societiesWithWorkers,
       },
     });
   } catch (error) {
@@ -215,22 +220,21 @@ export const getPendingSocieties = async (
   }
 };
 
-// Approve society
 export const approveSociety = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
     const adminId = (req as any).user?.userId;
 
-    const society = await User.findOne({
+    const societyWorker = await User.findOne({
       _id: id,
       role: ROLES_LIST.society,
       isVerified: false,
     });
 
-    if (!society) {
+    if (!societyWorker) {
       res.status(404).json({
         success: false,
         message: "Society worker not found or already approved",
@@ -238,22 +242,42 @@ export const approveSociety = async (
       return;
     }
 
-    // Update society
-    society.isVerified = true;
-    society.verificationDate = new Date();
-    society.verifiedBy = adminId;
-    await society.save();
+    const societyAccount = await SocietyAccount.findById(societyWorker.societyId);
+
+    if (!societyAccount) {
+      res.status(404).json({
+        success: false,
+        message: "Society account not found",
+      });
+      return;
+    }
+
+    societyWorker.isVerified = true;
+    societyWorker.verificationDate = new Date();
+    societyWorker.verifiedBy = adminId as any;
+    await societyWorker.save();
+
+    societyAccount.isVerified = true;
+    societyAccount.verificationDate = new Date();
+    societyAccount.verifiedBy = adminId as any;
+    await societyAccount.save();
 
     res.status(200).json({
       success: true,
-      message: "Society worker approved successfully",
+      message: "Society approved successfully",
       data: {
+        worker: {
+          id: societyWorker._id,
+          name: societyWorker.name,
+          email: societyWorker.email,
+          isVerified: societyWorker.isVerified,
+          verificationDate: societyWorker.verificationDate,
+        },
         society: {
-          id: society._id,
-          name: society.name,
-          email: society.email,
-          isVerified: society.isVerified,
-          verificationDate: society.verificationDate,
+          id: societyAccount._id,
+          societyName: societyAccount.societyName,
+          isVerified: societyAccount.isVerified,
+          verificationDate: societyAccount.verificationDate,
         },
       },
     });
@@ -266,21 +290,20 @@ export const approveSociety = async (
   }
 };
 
-// Reject society
 export const rejectSociety = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const society = await User.findOne({
+    const societyWorker = await User.findOne({
       _id: id,
       role: ROLES_LIST.society,
       isVerified: false,
     });
 
-    if (!society) {
+    if (!societyWorker) {
       res.status(404).json({
         success: false,
         message: "Society worker not found",
@@ -288,8 +311,21 @@ export const rejectSociety = async (
       return;
     }
 
-    // Delete the society account
+    const societyAccount = await SocietyAccount.findById(societyWorker.societyId);
+
     await User.deleteOne({ _id: id });
+
+    if (societyAccount) {
+      const otherWorkers = await User.countDocuments({
+        societyId: societyAccount._id,
+        role: ROLES_LIST.society,
+        isVerified: true,
+      });
+
+      if (otherWorkers === 0) {
+        await SocietyAccount.deleteOne({ _id: societyAccount._id });
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -304,68 +340,58 @@ export const rejectSociety = async (
   }
 };
 
-// Get all societies
 export const getAllSocieties = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const societies = await User.find({
-      role: ROLES_LIST.society,
+    const societyAccounts = await SocietyAccount.find({
       isVerified: true,
       isActive: true,
     })
-      .select("-password -__v")
+      .select("-__v")
       .sort({ createdAt: -1 });
+
+    const societiesWithWorkers = await Promise.all(
+      societyAccounts.map(async (account) => {
+        const primaryWorker = await User.findOne({
+          societyId: account._id,
+          role: ROLES_LIST.society,
+          isVerified: true,
+        });
+        return {
+          id: account._id,
+          societyName: account.societyName,
+          email: account.email,
+          phone: account.phone,
+          address: account.address,
+          walletBalance: account.walletBalance,
+          totalRebatesEarned: account.totalRebatesEarned,
+          complianceStreak: account.complianceStreak,
+          lastComplianceDate: account.lastComplianceDate,
+          isVerified: account.isVerified,
+          primaryWorker: primaryWorker
+            ? {
+                id: primaryWorker._id,
+                name: primaryWorker.name,
+                email: primaryWorker.email,
+                phone: primaryWorker.phone,
+              }
+            : null,
+        };
+      })
+    );
 
     res.status(200).json({
       success: true,
       data: {
-        societies,
+        societies: societiesWithWorkers,
       },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Error fetching societies",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
-export const getDocument = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-
-    const officer = await User.findOne({
-      _id: id,
-      role: ROLES_LIST.officer,
-    });
-
-    if (!officer) {
-      res.status(404).json({
-        success: false,
-        message: "Officer not found",
-      });
-      return;
-    }
-
-    if (!officer.documentUrl) {
-      res.status(404).json({
-        success: false,
-        message: "No document available for this officer",
-      });
-      return;
-    }
-
-    await sendFile(officer.documentUrl, res);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching document",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

@@ -443,6 +443,3 @@ The system includes AI-powered verification capabilities:
 ---
 
 **Genesis Backend** - Building smarter communities through technology integration and automation.
-
-
-Update get /admin/pending-officer route to send images uploaded by officers as well

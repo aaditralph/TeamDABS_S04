@@ -24,7 +24,7 @@ const IoTDeviceSchema = new mongoose.Schema<IIoTDeviceDocument>(
     },
     linkedSocietyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "SocietyAccount",
       required: true,
     },
     deviceType: {

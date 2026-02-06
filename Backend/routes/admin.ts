@@ -8,7 +8,6 @@ import {
   approveSociety,
   rejectSociety,
   getAllSocieties,
-  getDocument,
 } from "../controllers/adminController.js";
 import { protect } from "../middleware/auth.js";
 import { authorize } from "../middleware/authorize.js";
@@ -28,13 +27,6 @@ router.get(
   protect,
   authorize([ROLES_LIST.admin]),
   getPendingOfficers,
-);
-
-router.get(
-  "/officer-document/:id",
-  protect,
-  authorize([ROLES_LIST.admin]),
-  getDocument,
 );
 
 router.put(

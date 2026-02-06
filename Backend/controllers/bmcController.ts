@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import type { Request, Response } from "express";
-import EvidenceLog from "../models/EvidenceLog.js";
-import SocietyProfile from "../models/SocietyProfile.js";
-import BwgSociety from "../models/BwgSociety.js";
+import Report from "../models/Report.js";
+import SocietyAccount from "../models/SocietyAccount.js";
 import ROLES_LIST from "../config/roles_list.js";
 
 export const getPendingReviews = async (
@@ -10,34 +9,47 @@ export const getPendingReviews = async (
   res: Response
 ): Promise<void> => {
   try {
-    const pendingSubmissions = await EvidenceLog.find({
+    const pendingReports = await Report.find({
       verificationStatus: "PENDING",
     })
-      .populate("societyId", "societyName email phone")
+      .populate("societyAccountId", "societyName email phone")
+      .populate("submittedBy", "name email phone")
       .sort({ submissionDate: 1 })
       .lean();
 
-    const formattedSubmissions = pendingSubmissions.map((submission) => {
-      const societyData = submission.societyId as unknown as { _id: mongoose.Types.ObjectId; societyName: string; email: string; phone: string } | null;
+    const formattedReports = pendingReports.map((report) => {
+      const societyData = report.societyAccountId as unknown as {
+        _id: mongoose.Types.ObjectId;
+        societyName: string;
+        email: string;
+        phone: string;
+      } | null;
+      const submittedByData = report.submittedBy as unknown as {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        email: string;
+        phone: string;
+      } | null;
       return {
-        evidenceId: submission._id,
-        submissionDate: submission.submissionDate,
+        reportId: report._id,
+        submissionDate: report.submissionDate,
         society: {
           id: societyData?._id,
           societyName: societyData?.societyName || "Unknown",
           email: societyData?.email || "Unknown",
           phone: societyData?.phone || "Unknown",
         },
-        photoUrl: submission.photoUrl,
-        gpsMetadata: {
-          latitude: submission.gpsMetadata.latitude,
-          longitude: submission.gpsMetadata.longitude,
-          accuracy: submission.gpsMetadata.accuracy,
-          timestamp: submission.gpsMetadata.timestamp,
+        submittedBy: {
+          id: submittedByData?._id,
+          name: submittedByData?.name || "Unknown",
+          email: submittedByData?.email || "Unknown",
         },
-        aiTrustScore: submission.aiTrustScore,
-        iotVibrationStatus: submission.iotVibrationStatus,
-        verificationStatus: submission.verificationStatus,
+        submissionImages: report.submissionImages,
+        gpsMetadata: report.gpsMetadata,
+        iotSensorData: report.iotSensorData,
+        verificationProbability: report.verificationProbability,
+        aiTrustScore: report.aiTrustScore,
+        expiresAt: report.expiresAt,
       };
     });
 
@@ -45,8 +57,8 @@ export const getPendingReviews = async (
       success: true,
       message: "Pending reviews retrieved successfully",
       data: {
-        count: formattedSubmissions.length,
-        submissions: formattedSubmissions,
+        count: formattedReports.length,
+        reports: formattedReports,
       },
     });
   } catch (error) {
@@ -64,7 +76,7 @@ export const submitReview = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { action, comments, rebateAmount } = req.body;
+    const { action, comments, rebateAmount, verificationImages } = req.body;
     const officerId = (req as any).user?.userId;
 
     if (!["APPROVE", "REJECT"].includes(action)) {
@@ -75,55 +87,66 @@ export const submitReview = async (
       return;
     }
 
-    const evidence = await EvidenceLog.findById(id);
+    const report = await Report.findById(id);
 
-    if (!evidence) {
+    if (!report) {
       res.status(404).json({
         success: false,
-        message: "Evidence submission not found",
+        message: "Report not found",
       });
       return;
     }
 
-    if (evidence.verificationStatus !== "PENDING") {
+    if (report.verificationStatus !== "PENDING") {
       res.status(400).json({
         success: false,
-        message: "This submission has already been reviewed",
+        message: "This report has already been reviewed",
       });
       return;
     }
 
-    const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
+    const newStatus = action === "APPROVE" ? "OFFICER_APPROVED" : "REJECTED";
 
-    evidence.verificationStatus = newStatus;
-    evidence.officerId = new mongoose.Types.ObjectId(officerId);
-    evidence.reviewTimestamp = new Date();
-    evidence.officerComments = comments || undefined;
+    report.verificationStatus = newStatus;
+    report.approvalType = "OFFICER";
+    report.officerId = new mongoose.Types.ObjectId(officerId);
+    report.reviewTimestamp = new Date();
+    report.officerComments = comments || undefined;
 
-    if (action === "APPROVE" && rebateAmount) {
-      evidence.rebateAmount = rebateAmount;
-
-      const societyProfile = await SocietyProfile.findOne({
-        userId: evidence.societyId,
-      });
-
-      if (societyProfile) {
-        societyProfile.walletBalance += rebateAmount;
-        societyProfile.totalRebatesEarned += rebateAmount;
-        await societyProfile.save();
-      }
+    if (verificationImages && Array.isArray(verificationImages)) {
+      report.verificationImages = verificationImages.map((img: any) => ({
+        url: img.url,
+        uploadedAt: new Date(),
+        gpsMetadata: img.gpsMetadata,
+      }));
     }
 
-    await evidence.save();
+    if (action === "APPROVE" && rebateAmount) {
+      report.rebateAmount = rebateAmount;
+
+      const societyAccount = await SocietyAccount.findById(report.societyAccountId);
+
+      if (societyAccount) {
+        societyAccount.walletBalance += rebateAmount;
+        societyAccount.totalRebatesEarned += rebateAmount;
+        societyAccount.lastComplianceDate = new Date();
+        await societyAccount.save();
+      }
+    } else if (action === "REJECT") {
+      report.rejectionReason = comments || "Rejected by officer";
+    }
+
+    await report.save();
 
     res.status(200).json({
       success: true,
-      message: `Submission ${action === "APPROVE" ? "approved" : "rejected"} successfully`,
+      message: `Report ${action === "APPROVE" ? "approved" : "rejected"} successfully`,
       data: {
-        evidenceId: evidence._id,
-        verificationStatus: evidence.verificationStatus,
-        reviewTimestamp: evidence.reviewTimestamp,
-        rebateAmount: evidence.rebateAmount,
+        reportId: report._id,
+        verificationStatus: report.verificationStatus,
+        approvalType: report.approvalType,
+        reviewTimestamp: report.reviewTimestamp,
+        rebateAmount: report.rebateAmount,
       },
     });
   } catch (error) {
@@ -142,7 +165,7 @@ export const getReportsHistory = async (
   try {
     const { societyId } = req.params;
 
-    const societyExists = await BwgSociety.findById(societyId);
+    const societyExists = await SocietyAccount.findById(societyId);
 
     if (!societyExists) {
       res.status(404).json({
@@ -152,44 +175,69 @@ export const getReportsHistory = async (
       return;
     }
 
-    const history = await EvidenceLog.find({ societyId })
+    const reports = await Report.find({ societyAccountId: societyId })
+      .populate("submittedBy", "name email")
+      .populate("officerId", "name email")
       .sort({ submissionDate: -1 })
       .lean();
 
-    const dailyLogs: Record<string, Array<{
-      evidenceId: unknown;
-      submissionDate: Date;
-      photoUrl: string;
-      gpsMetadata: {
-        latitude: number;
-        longitude: number;
-        accuracy: number;
-        timestamp: Date;
-      };
-      aiTrustScore: number;
-      iotVibrationStatus: string;
-      verificationStatus: string;
-      officerComments?: string;
-      rebateAmount?: number;
-      reviewTimestamp?: Date;
-    }>> = {};
+    const dailyLogs: Record<
+      string,
+      Array<{
+        reportId: unknown;
+        submissionDate: Date;
+        submissionImages: any[];
+        verificationImages: any[];
+        gpsMetadata: {
+          latitude: number;
+          longitude: number;
+          accuracy: number;
+          timestamp: Date;
+        };
+        iotSensorData?: any;
+        aiTrustScore: number;
+        verificationProbability: number;
+        verificationStatus: string;
+        approvalType: string;
+        officerComments?: string;
+        rejectionReason?: string;
+        rebateAmount?: number;
+        reviewTimestamp?: Date;
+        submittedBy?: {
+          name: string;
+          email: string;
+        };
+        officer?: {
+          name: string;
+          email: string;
+        };
+      }>
+    > = {};
 
-    history.forEach((logItem) => {
-      const dateKey = new Date(logItem.submissionDate).toISOString().split("T")[0] as string;
+    reports.forEach((reportItem) => {
+      const dateKey = new Date(reportItem.submissionDate)
+        .toISOString()
+        .split("T")[0] as string;
       if (!dailyLogs[dateKey]) {
         dailyLogs[dateKey] = [];
       }
       dailyLogs[dateKey]!.push({
-        evidenceId: logItem._id,
-        submissionDate: logItem.submissionDate,
-        photoUrl: logItem.photoUrl,
-        gpsMetadata: logItem.gpsMetadata,
-        aiTrustScore: logItem.aiTrustScore,
-        iotVibrationStatus: logItem.iotVibrationStatus,
-        verificationStatus: logItem.verificationStatus,
-        officerComments: logItem.officerComments,
-        rebateAmount: logItem.rebateAmount,
-        reviewTimestamp: logItem.reviewTimestamp,
+        reportId: reportItem._id,
+        submissionDate: reportItem.submissionDate,
+        submissionImages: reportItem.submissionImages,
+        verificationImages: reportItem.verificationImages,
+        gpsMetadata: reportItem.gpsMetadata,
+        iotSensorData: reportItem.iotSensorData,
+        aiTrustScore: reportItem.aiTrustScore,
+        verificationProbability: reportItem.verificationProbability,
+        verificationStatus: reportItem.verificationStatus,
+        approvalType: reportItem.approvalType,
+        officerComments: reportItem.officerComments,
+        rejectionReason: reportItem.rejectionReason,
+        rebateAmount: reportItem.rebateAmount,
+        reviewTimestamp: reportItem.reviewTimestamp,
+        submittedBy: reportItem.submittedBy as any,
+        officer: reportItem.officerId as any,
       });
     });
 
@@ -199,7 +247,7 @@ export const getReportsHistory = async (
       data: {
         societyId,
         societyName: societyExists.societyName,
-        totalSubmissions: history.length,
+        totalSubmissions: reports.length,
         dailyLogs,
       },
     });
@@ -207,6 +255,93 @@ export const getReportsHistory = async (
     res.status(500).json({
       success: false,
       message: "Error fetching reports history",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getAllReports = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { status, societyId, fromDate, toDate } = req.query;
+
+    const filter: any = {};
+
+    if (status) {
+      filter.verificationStatus = status;
+    }
+
+    if (societyId) {
+      filter.societyAccountId = societyId;
+    }
+
+    if (fromDate || toDate) {
+      filter.submissionDate = {};
+      if (fromDate) {
+        filter.submissionDate.$gte = new Date(fromDate as string);
+      }
+      if (toDate) {
+        filter.submissionDate.$lte = new Date(toDate as string);
+      }
+    }
+
+    const reports = await Report.find(filter)
+      .populate("societyAccountId", "societyName email")
+      .populate("submittedBy", "name email")
+      .populate("officerId", "name email")
+      .sort({ submissionDate: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Reports retrieved successfully",
+      data: {
+        count: reports.length,
+        reports,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching reports",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const expireOldReports = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const now = new Date();
+
+    const expiredReports = await Report.updateMany(
+      {
+        verificationStatus: "PENDING",
+        expiresAt: { $lt: now },
+      },
+      {
+        $set: {
+          verificationStatus: "EXPIRED",
+          approvalType: "NONE",
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `${expiredReports.modifiedCount} reports expired`,
+      data: {
+        expiredCount: expiredReports.modifiedCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error expiring reports",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

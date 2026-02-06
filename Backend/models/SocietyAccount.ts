@@ -12,11 +12,10 @@ export interface IGeoLockCoordinates {
   longitude: number;
 }
 
-export interface IBwgSocietyDocument extends mongoose.Document {
-  name: string;
+export interface ISocietyAccountDocument extends mongoose.Document {
+  societyName: string;
   email: string;
   phone: string;
-  societyName: string;
   address: ISocietyAddress;
   geoLockCoordinates: IGeoLockCoordinates;
   walletBalance: number;
@@ -24,6 +23,9 @@ export interface IBwgSocietyDocument extends mongoose.Document {
   lastComplianceDate?: Date;
   complianceStreak: number;
   isActive: boolean;
+  isVerified: boolean;
+  verificationDate?: Date;
+  verifiedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,9 +74,9 @@ const GeoLockCoordinatesSchema = new mongoose.Schema<IGeoLockCoordinates>(
   { _id: false }
 );
 
-const BwgSocietySchema = new mongoose.Schema<IBwgSocietyDocument>(
+const SocietyAccountSchema = new mongoose.Schema<ISocietyAccountDocument>(
   {
-    name: {
+    societyName: {
       type: String,
       required: true,
       trim: true,
@@ -86,11 +88,6 @@ const BwgSocietySchema = new mongoose.Schema<IBwgSocietyDocument>(
       trim: true,
     },
     phone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    societyName: {
       type: String,
       required: true,
       trim: true,
@@ -125,16 +122,27 @@ const BwgSocietySchema = new mongoose.Schema<IBwgSocietyDocument>(
       type: Boolean,
       default: true,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationDate: {
+      type: Date,
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   {
     timestamps: true,
   }
 );
 
-BwgSocietySchema.index({ email: 1 }, { unique: true });
-BwgSocietySchema.index({ societyName: 1 });
+SocietyAccountSchema.index({ societyName: 1 }, { unique: true });
+SocietyAccountSchema.index({ email: 1 });
 
-export default mongoose.model<IBwgSocietyDocument>(
-  "BwgSociety",
-  BwgSocietySchema
+export default mongoose.model<ISocietyAccountDocument>(
+  "SocietyAccount",
+  SocietyAccountSchema
 );
