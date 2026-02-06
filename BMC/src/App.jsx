@@ -22,8 +22,11 @@ function App() {
     
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData))
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        console.log('✅ Restored session for:', parsedUser.email)
       } catch (e) {
+        console.error('❌ Failed to parse user data:', e)
         localStorage.removeItem('officerToken')
         localStorage.removeItem('officerUser')
       }
@@ -32,12 +35,14 @@ function App() {
   }, [])
 
   const handleLogin = (data) => {
+    console.log('✅ Login successful, storing token...')
     localStorage.setItem('officerToken', data.token)
     localStorage.setItem('officerUser', JSON.stringify(data.user))
     setUser(data.user)
   }
 
   const handleLogout = () => {
+    console.log('👋 Logging out...')
     localStorage.removeItem('officerToken')
     localStorage.removeItem('officerUser')
     setUser(null)

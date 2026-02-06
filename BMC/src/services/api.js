@@ -18,6 +18,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - logout user
+      localStorage.removeItem('officerToken')
+      localStorage.removeItem('officerUser')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 // Authentication APIs
 export const authAPI = {
   login: (email, password) => api.post('/officer/login', { email, password }),
@@ -29,25 +43,12 @@ export const authAPI = {
 
 // Report Management APIs
 export const reportsAPI = {
-  // Get all pending reviews across all societies
   getPendingReviews: () => api.get('/bmc/pending-reviews'),
-  
-  // Get all reports with filters
   getAllReports: (params = {}) => api.get('/bmc/reports', { params }),
-  
-  // Get reports history for a specific society
   getReportsHistory: (societyId) => api.get(`/bmc/reports/history/${societyId}`),
-  
-  // Get officer's assigned pending reports
   getOfficerPending: () => api.get('/bmc/officer/pending'),
-  
-  // Get officer's reviewed reports
   getOfficerReviewed: () => api.get('/bmc/officer/reviewed'),
-  
-  // Get single report details
   getReportById: (id) => api.get(`/verification/reports/${id}`),
-  
-  // Submit review (approve/reject)
   submitReview: (id, data) => api.patch(`/bmc/review/${id}`, data),
 }
 

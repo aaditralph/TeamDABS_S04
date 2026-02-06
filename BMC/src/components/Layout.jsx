@@ -12,7 +12,7 @@ import {
   FileText,
   User
 } from 'lucide-react'
-import { dashboardAPI } from '../services/api'
+import { dashboardAPI, authAPI } from '../services/api'
 
 const Layout = ({ user, onLogout }) => {
   const navigate = useNavigate()
@@ -23,6 +23,7 @@ const Layout = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchDashboardStats()
+    verifyToken()
   }, [])
 
   const fetchDashboardStats = async () => {
@@ -32,6 +33,18 @@ const Layout = ({ user, onLogout }) => {
       setPendingCount(data?.pendingReports || 0)
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
+    }
+  }
+
+  const verifyToken = async () => {
+    try {
+      // Verify token is valid by fetching profile
+      await authAPI.getProfile()
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Token invalid - logout
+        handleLogout()
+      }
     }
   }
 

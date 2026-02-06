@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Shield, Lock, Mail, Eye, EyeOff } from 'lucide-react'
+import { Shield, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { authAPI } from '../services/api'
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -17,35 +18,36 @@ const Login = ({ onLogin }) => {
     setError('')
 
     try {
-      // For demo purposes - simulate API call
-      // In production, replace with: await axios.post('/api/officer/login', formData)
+      const response = await authAPI.login(formData.email, formData.password)
+      const { token, user } = response.data.data
       
-      setTimeout(() => {
-        const userData = {
-          token: 'officer-token-' + Date.now(),
-          user: {
-            id: 'officer-' + Date.now(),
-            name: formData.email.split('@')[0],
-            email: formData.email,
-            role: 12,
-            isVerified: true
-          }
-        }
-        onLogin(userData)
-        setLoading(false)
-      }, 1000)
+      // Store token and user data
+      localStorage.setItem('officerToken', token)
+      localStorage.setItem('officerUser', JSON.stringify(user))
+      
+      // Call onLogin to update app state
+      onLogin({ token, user })
     } catch (err) {
-      setError('Invalid credentials. Please try again.')
+      console.error('Login error:', err)
+      const errorMessage = err.response?.data?.message || 'Invalid credentials. Please try again.'
+      
+      // Special message for pending approval
+      if (errorMessage.includes('pending admin approval')) {
+        setError('Your account is pending admin approval. Please wait for verification.')
+      } else {
+        setError(errorMessage)
+      }
+    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sidebar via-slate-800 to-primary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-700 via-slate-800 to-emerald-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="card bg-white/95 backdrop-blur-sm shadow-2xl">
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl mb-4 shadow-lg">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Officer Login</h1>
@@ -53,9 +55,9 @@ const Login = ({ onLogin }) => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span>{error}</span>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span className="text-sm">{error}</span>
             </div>
           )}
 
@@ -70,7 +72,7 @@ const Login = ({ onLogin }) => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                   placeholder="Enter your email"
                   required
                 />
@@ -87,7 +89,7 @@ const Login = ({ onLogin }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                   placeholder="Enter your password"
                   required
                 />
@@ -104,7 +106,7 @@ const Login = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3.5 text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center space-x-2">
@@ -117,12 +119,15 @@ const Login = ({ onLogin }) => {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          <div className="mt-8 pt-6 border-t border-gray-200 text-center space-y-3">
             <p className="text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:text-primary-dark font-semibold">
+              <Link to="/register" className="text-emerald-600 hover:text-emerald-700 font-semibold">
                 Register here
               </Link>
+            </p>
+            <p className="text-xs text-gray-500">
+              Need admin approval to access the system
             </p>
           </div>
 

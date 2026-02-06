@@ -69,14 +69,28 @@ const Dashboard = () => {
   }
 
   if (error) {
+    const isAuthError = error.includes('token') || error.includes('authorized') || error.includes('Token')
     return (
       <div className="card p-8 text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Dashboard</h3>
-        <p className="text-gray-500 mb-4">{error}</p>
-        <button onClick={fetchDashboardData} className="btn-primary">
-          Retry
-        </button>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {isAuthError ? 'Session Expired' : 'Error Loading Dashboard'}
+        </h3>
+        <p className="text-gray-500 mb-4">
+          {isAuthError 
+            ? 'Your session has expired. Please login again.' 
+            : error
+          }
+        </p>
+        {isAuthError ? (
+          <button onClick={() => window.location.href = '/login'} className="btn-primary">
+            Login Again
+          </button>
+        ) : (
+          <button onClick={fetchDashboardData} className="btn-primary">
+            Retry
+          </button>
+        )}
       </div>
     )
   }
