@@ -2,6 +2,7 @@ import express, { type Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import path from "path";
 import officerRoutes from "../routes/officer.js";
 import residentRoutes from "../routes/resident.js";
 import societyRoutes from "../routes/society.js";
@@ -10,6 +11,7 @@ import adminRoutes from "../routes/admin.js";
 import bmcRoutes from "../routes/bmc.js";
 import reportsRoutes from "../routes/reports.js";
 import verificationRoutes from "../routes/verification.js";
+import n8nWebhookRoutes from "../routes/n8nWebhook.js";
 import { errorHandler, notFound } from "../middleware/errorHandler.js";
 
 dotenv.config();
@@ -20,6 +22,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors());
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
 // Role-specific routes
 app.use("/api/officer", officerRoutes);
@@ -32,6 +37,9 @@ app.use("/api/verification", verificationRoutes);
 
 // Admin routes
 app.use("/admin", adminRoutes);
+
+// Webhook routes (n8n)
+app.use("/api", n8nWebhookRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Team DABS API", version: "1.0.0" });

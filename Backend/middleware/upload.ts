@@ -3,16 +3,19 @@ import path from "path";
 import fs from "fs";
 import type { Request, Response, NextFunction } from "express";
 
-// Ensure upload directory exists
+// Ensure upload directories exist
 const uploadDir = process.env.UPLOAD_PATH || "./uploads";
 const officersDir = path.join(uploadDir, "officers");
+const verificationDir = path.join(uploadDir, "verification");
 
-if (!fs.existsSync(officersDir)) {
-  fs.mkdirSync(officersDir, { recursive: true });
-}
+[officersDir, verificationDir].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
-// Configure storage
-const storage = multer.diskStorage({
+// Configure storage for officers
+const officersStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, officersDir);
   },
@@ -22,30 +25,49 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter - only allow PDF, JPG, PNG
-const fileFilter = (
+// Configure storage for verification (meter & composter images)
+const verificationStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, verificationDir);
+  },
+  filename: function (req, file, cb) {
+    const fieldName = file.fieldname || "image";
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, `${fieldName}-${uniqueSuffix}${path.extname(file.originalname)}`);
+  },
+});
+
+// File filter - only allow images
+const imageFileFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback,
 ) => {
-  const allowedTypes = [".pdf", ".jpg", ".jpeg", ".png"];
+  const allowedTypes = [".jpg", ".jpeg", ".png", ".webp"];
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (allowedTypes.includes(ext)) {
     cb(null, true);
   } else {
-    cb(
-      new Error("Invalid file type. Only PDF, JPG, and PNG files are allowed."),
-    );
+    cb(new Error("Invalid file type. Only JPG, PNG, and WebP images are allowed."));
   }
 };
 
-// Configure multer
+// Configure multer for officers
 export const upload = multer({
-  storage: storage,
+  storage: officersStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880"), // 5MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880"),
+  },
+});
+
+// Configure multer for verification
+export const uploadVerification = multer({
+  storage: verificationStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || "10485760"), // 10MB for verification images
   },
 });
 

@@ -25,6 +25,22 @@ export interface IImageSet {
   url: string;
   uploadedAt: Date;
   gpsMetadata?: IGPSMetadata;
+  label?: string;
+}
+
+export interface IN8NWebhookResponse {
+  webhookId?: string;
+  workflowId?: string;
+  status?: string;
+  detectionResults?: {
+    meterResults?: any[];
+    composterResults?: any[];
+  };
+  aiTrustScore?: number;
+  verificationProbability?: number;
+  rawResponse?: Record<string, any>;
+  processedAt?: Date;
+  error?: string;
 }
 
 export interface IReportDocument extends mongoose.Document {
@@ -39,6 +55,7 @@ export interface IReportDocument extends mongoose.Document {
   aiTrustScore: number;
   verificationStatus: VerificationStatus;
   approvalType: ApprovalType;
+  n8nWebhookResponse?: IN8NWebhookResponse;
   officerId?: mongoose.Types.ObjectId;
   reviewTimestamp?: Date;
   officerComments?: string;
@@ -94,6 +111,9 @@ const ImageSetSchema = new mongoose.Schema<IImageSet>(
     },
     gpsMetadata: {
       type: GPSMetadataSchema,
+    },
+    label: {
+      type: String,
     },
   },
   { _id: false }
@@ -259,11 +279,51 @@ ReportSchema.index({ submittedBy: 1 });
 ReportSchema.index({ notifiedOfficers: 1 });
 ReportSchema.index({ verificationStatus: 1, expiresAt: 1 });
 
+const N8NWebhookResponseSchema = new mongoose.Schema<IN8NWebhookResponse>(
+  {
+    webhookId: {
+      type: String,
+    },
+    workflowId: {
+      type: String,
+    },
+    status: {
+      type: String,
+    },
+    detectionResults: {
+      type: mongoose.Schema.Types.Mixed,
+    },
+    aiTrustScore: {
+      type: Number,
+    },
+    verificationProbability: {
+      type: Number,
+    },
+    rawResponse: {
+      type: mongoose.Schema.Types.Mixed,
+    },
+    processedAt: {
+      type: Date,
+    },
+    error: {
+      type: String,
+    },
+  },
+  { _id: false }
+);
+
 ReportSchema.pre("save", function (this: IReportDocument) {
   if (this.verificationStatus === "PENDING" && new Date() > this.expiresAt) {
     this.verificationStatus = "EXPIRED";
     this.approvalType = "NONE";
   }
+});
+
+ReportSchema.add({
+  n8nWebhookResponse: {
+    type: N8NWebhookResponseSchema,
+    default: undefined,
+  },
 });
 
 export default mongoose.model<IReportDocument>("Report", ReportSchema);
