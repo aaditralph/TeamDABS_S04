@@ -5,19 +5,29 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import PendingReports from './pages/PendingReports'
-import ReportDetail from './pages/ReportDetail'
 import ReviewedReports from './pages/ReviewedReports'
+import AllReports from './pages/AllReports'
+import ReportDetail from './pages/ReportDetail'
 import Notifications from './pages/Notifications'
+import Profile from './pages/Profile'
 
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Clear any existing session on app load
-    localStorage.removeItem('officerToken')
-    localStorage.removeItem('officerUser')
-    setUser(null)
+    // Check for existing session
+    const token = localStorage.getItem('officerToken')
+    const userData = localStorage.getItem('officerUser')
+    
+    if (token && userData) {
+      try {
+        setUser(JSON.parse(userData))
+      } catch (e) {
+        localStorage.removeItem('officerToken')
+        localStorage.removeItem('officerUser')
+      }
+    }
     setLoading(false)
   }, [])
 
@@ -35,7 +45,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sidebar via-slate-800 to-primary flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
       </div>
     )
@@ -49,8 +59,10 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="pending-reports" element={<PendingReports />} />
         <Route path="reviewed-reports" element={<ReviewedReports />} />
+        <Route path="reports" element={<AllReports />} />
         <Route path="report/:id" element={<ReportDetail />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
     </Routes>
   )

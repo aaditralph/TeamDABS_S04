@@ -1,76 +1,69 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { 
   Bell, 
   CheckCircle, 
   Clock,
-  Trash2,
-  Filter
+  Filter,
+  AlertCircle,
+  RefreshCw,
+  FileText
 } from 'lucide-react'
+import { notificationsAPI } from '../services/api'
 
 const Notifications = () => {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
 
-  // Mock data based on API
-  const mockNotifications = [
-    {
-      _id: '1',
-      type: 'REPORT_SUBMITTED',
-      title: 'New Report Submitted',
-      message: 'Green Valley Apartments has submitted a new report',
-      reportId: '101',
-      societyId: 's1',
-      isRead: false,
-      createdAt: '2026-02-06T10:30:00.000Z'
-    },
-    {
-      _id: '2',
-      type: 'REPORT_SUBMITTED',
-      title: 'New Report Submitted',
-      message: 'Sunrise Residency has submitted a new report',
-      reportId: '102',
-      societyId: 's2',
-      isRead: false,
-      createdAt: '2026-02-05T14:20:00.000Z'
-    },
-    {
-      _id: '3',
-      type: 'REPORT_EXPIRING',
-      title: 'Report Expiring Soon',
-      message: 'Report from Metro Heights will expire in 2 days',
-      reportId: '103',
-      societyId: 's3',
-      isRead: true,
-      createdAt: '2026-02-04T09:15:00.000Z'
-    },
-    {
-      _id: '4',
-      type: 'REPORT_SUBMITTED',
-      title: 'New Report Submitted',
-      message: 'Ocean View Society has submitted a new report',
-      reportId: '104',
-      societyId: 's4',
-      isRead: true,
-      createdAt: '2026-02-03T16:45:00.000Z'
-    }
-  ]
-
   useEffect(() => {
-    setTimeout(() => {
-      setNotifications(mockNotifications)
-      setLoading(false)
-    }, 600)
-  }, [])
+    fetchNotifications()
+  }, [filter])
 
-  const markAsRead = (id) => {
-    setNotifications(prev => prev.map(n => 
-      n._id === id ? { ...n, isRead: true } : n
-    ))
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const params = {
+        limit: 50,
+        unreadOnly: filter === 'unread'
+      }
+      const response = await notificationsAPI.getNotifications(params)
+      setNotifications(response.data.data?.notifications || [])
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+      setError(err.response?.data?.message || 'Failed to load notifications')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const markAllAsRead = () => {
+  const markAsRead = async (id) => {
+    try {
+      await notificationsAPI.markAsRead(id)
+      setNotifications(prev => prev.map(n => 
+        n._id === id ? { ...n, isRead: true } : n
+      ))
+    } catch (err) {
+      console.error('Error marking notification as read:', err)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter(n => !n.isRead)
+    await Promise.all(unreadNotifications.map(n => notificationsAPI.markAsRead(n._id)))
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+  }
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification._id)
+    }
+    if (notification.reportId) {
+      navigate(`/report/${notification.reportId}`)
+    }
   }
 
   const filteredNotifications = notifications.filter(n => {
@@ -85,18 +78,47 @@ const Notifications = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'REPORT_SUBMITTED':
-        return <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center"><Bell className="w-5 h-5 text-primary" /></div>
+        return <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"><FileText className="w-5 h-5 text-blue-600" /></div>
       case 'REPORT_EXPIRING':
-        return <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center"><Clock className="w-5 h-5 text-warning" /></div>
+        return <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center"><Clock className="w-5 h-5 text-yellow-600" /></div>
+      case 'REPORT_APPROVED':
+        return <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><CheckCircle className="w-5 h-5 text-green-600" /></div>
+      case 'REPORT_REJECTED':
+        return <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"><Bell className="w-5 h-5 text-red-600" /></div>
       default:
         return <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center"><Bell className="w-5 h-5 text-gray-500" /></div>
     }
   }
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="card p-8 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Notifications</h3>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <button onClick={fetchNotifications} className="btn-primary flex items-center gap-2 mx-auto">
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
       </div>
     )
   }
@@ -133,7 +155,7 @@ const Notifications = () => {
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filter === f
-                  ? 'bg-primary text-white'
+                  ? 'bg-emerald-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -148,7 +170,8 @@ const Notifications = () => {
         {filteredNotifications.map((notification) => (
           <div
             key={notification._id}
-            className={`card p-4 transition-colors ${
+            onClick={() => handleNotificationClick(notification)}
+            className={`card p-4 transition-colors cursor-pointer hover:shadow-md ${
               !notification.isRead ? 'bg-blue-50/50 border-blue-200' : ''
             }`}
           >
@@ -162,20 +185,23 @@ const Notifications = () => {
                     </h3>
                     <p className="text-gray-600 mt-1">{notification.message}</p>
                     <p className="text-sm text-gray-400 mt-2">
-                      {new Date(notification.createdAt).toLocaleString()}
+                      {formatDate(notification.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
                     {!notification.isRead && (
                       <button
-                        onClick={() => markAsRead(notification._id)}
-                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          markAsRead(notification._id)
+                        }}
+                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         title="Mark as read"
                       >
                         <CheckCircle className="w-5 h-5" />
                       </button>
                     )}
-                    <div className={`w-2.5 h-2.5 rounded-full ${notification.isRead ? 'bg-gray-300' : 'bg-primary'}`}></div>
+                    <div className={`w-2.5 h-2.5 rounded-full ${notification.isRead ? 'bg-gray-300' : 'bg-emerald-600'}`}></div>
                   </div>
                 </div>
               </div>

@@ -8,14 +8,32 @@ import {
   LogOut, 
   Shield,
   Menu,
-  X
+  X,
+  FileText,
+  User
 } from 'lucide-react'
+import { dashboardAPI } from '../services/api'
 
 const Layout = ({ user, onLogout }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(3)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    fetchDashboardStats()
+  }, [])
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await dashboardAPI.getStats()
+      const data = response.data.data
+      setPendingCount(data?.pendingReports || 0)
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
+    }
+  }
 
   const handleLogout = () => {
     onLogout()
@@ -24,9 +42,11 @@ const Layout = ({ user, onLogout }) => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/pending-reports', label: 'Pending Reports', icon: ClipboardList, badge: 'count' },
+    { path: '/pending-reports', label: 'Pending Reports', icon: ClipboardList, badge: pendingCount },
     { path: '/reviewed-reports', label: 'Reviewed', icon: CheckCircle },
+    { path: '/reports', label: 'All Reports', icon: FileText },
     { path: '/notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
+    { path: '/profile', label: 'Profile', icon: User },
   ]
 
   const isActive = (path) => {
@@ -39,16 +59,16 @@ const Layout = ({ user, onLogout }) => {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-600 text-white rounded-lg shadow-lg"
       >
         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static inset-y-0 left-0 w-72 bg-sidebar text-white flex flex-col z-40 transition-transform duration-300`}>
+      <aside className={`${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static inset-y-0 left-0 w-72 bg-gray-900 text-white flex flex-col z-40 transition-transform duration-300`}>
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center shadow-lg">
               <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
@@ -66,7 +86,7 @@ const Layout = ({ user, onLogout }) => {
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg'
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
@@ -74,13 +94,8 @@ const Layout = ({ user, onLogout }) => {
                 <item.icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
               </div>
-              {item.badge && item.badge === 'count' && (
-                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  15
-                </span>
-              )}
-              {item.badge && typeof item.badge === 'number' && item.badge > 0 && (
-                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {item.badge > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {item.badge}
                 </span>
               )}
@@ -89,7 +104,10 @@ const Layout = ({ user, onLogout }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
-          <div className="flex items-center space-x-3 mb-4 p-3 bg-gray-800/50 rounded-xl">
+          <div 
+            onClick={() => navigate('/profile')}
+            className="flex items-center space-x-3 mb-4 p-3 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 transition-colors"
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center">
               <span className="text-lg font-bold text-white">{user?.name?.charAt(0) || 'O'}</span>
             </div>
@@ -126,7 +144,9 @@ const Layout = ({ user, onLogout }) => {
                 {location.pathname === '/' && 'Dashboard'}
                 {location.pathname === '/pending-reports' && 'Pending Reports'}
                 {location.pathname === '/reviewed-reports' && 'Reviewed Reports'}
+                {location.pathname === '/reports' && 'All Reports'}
                 {location.pathname === '/notifications' && 'Notifications'}
+                {location.pathname === '/profile' && 'My Profile'}
                 {location.pathname.startsWith('/report/') && 'Report Details'}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5">
@@ -134,14 +154,17 @@ const Layout = ({ user, onLogout }) => {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-500 hover:text-primary transition-colors rounded-lg hover:bg-gray-100">
+              <button 
+                onClick={() => navigate('/notifications')}
+                className="relative p-2 text-gray-500 hover:text-emerald-600 transition-colors rounded-lg hover:bg-gray-100"
+              >
                 <Bell className="w-6 h-6" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-danger rounded-full border-2 border-white"></span>
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
               <div className="hidden sm:flex items-center space-x-2">
-                <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
                   Officer
                 </span>
               </div>

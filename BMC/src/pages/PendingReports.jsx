@@ -5,147 +5,80 @@ import {
   MapPin, 
   Eye, 
   CheckCircle, 
-  XCircle,
-  Calendar,
   Building2,
   Filter,
-  Search
+  Search,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
+import { reportsAPI } from '../services/api'
 
 const PendingReports = () => {
   const navigate = useNavigate()
   const [reports, setReports] = useState([])
+  const [filteredReports, setFilteredReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-
-  // Mock data based on API documentation
-  const mockReports = [
-    {
-      _id: '1',
-      submissionDate: '2026-02-06T10:30:00.000Z',
-      society: {
-        id: 's1',
-        societyName: 'Green Valley Apartments',
-        email: 'greenvalley@society.com',
-        phone: '9876543210'
-      },
-      submittedBy: {
-        id: 'u1',
-        name: 'Jane Resident',
-        email: 'jane.resident@email.com'
-      },
-      submissionImages: [
-        { url: '/api/placeholder/400/300', label: 'meter_image' },
-        { url: '/api/placeholder/400/300', label: 'composter_image' }
-      ],
-      gpsMetadata: {
-        latitude: 19.0760,
-        longitude: 72.8777,
-        accuracy: 10
-      },
-      iotSensorData: {
-        deviceId: 'IOT-001',
-        deviceType: 'VIBRATION_SENSOR',
-        vibrationStatus: 'DETECTED',
-        sensorValue: 0.75,
-        batteryLevel: 85,
-        isOnline: true
-      },
-      aiTrustScore: 78,
-      verificationProbability: 82,
-      expiresAt: '2026-02-13T10:30:00.000Z'
-    },
-    {
-      _id: '2',
-      submissionDate: '2026-02-05T14:20:00.000Z',
-      society: {
-        id: 's2',
-        societyName: 'Sunrise Residency',
-        email: 'sunrise@society.com',
-        phone: '9876543211'
-      },
-      submittedBy: {
-        id: 'u2',
-        name: 'John Smith',
-        email: 'john.smith@email.com'
-      },
-      submissionImages: [
-        { url: '/api/placeholder/400/300', label: 'meter_image' }
-      ],
-      gpsMetadata: {
-        latitude: 19.0820,
-        longitude: 72.8900,
-        accuracy: 8
-      },
-      iotSensorData: {
-        deviceId: 'IOT-002',
-        deviceType: 'VIBRATION_SENSOR',
-        vibrationStatus: 'DETECTED',
-        sensorValue: 0.85,
-        batteryLevel: 92,
-        isOnline: true
-      },
-      aiTrustScore: 92,
-      verificationProbability: 95,
-      expiresAt: '2026-02-12T14:20:00.000Z'
-    },
-    {
-      _id: '3',
-      submissionDate: '2026-02-04T09:15:00.000Z',
-      society: {
-        id: 's3',
-        societyName: 'Metro Heights',
-        email: 'metro@society.com',
-        phone: '9876543212'
-      },
-      submittedBy: {
-        id: 'u3',
-        name: 'Alice Johnson',
-        email: 'alice.j@email.com'
-      },
-      submissionImages: [
-        { url: '/api/placeholder/400/300', label: 'meter_image' },
-        { url: '/api/placeholder/400/300', label: 'composter_image' }
-      ],
-      gpsMetadata: {
-        latitude: 19.0650,
-        longitude: 72.8650,
-        accuracy: 12
-      },
-      iotSensorData: {
-        deviceId: 'IOT-003',
-        deviceType: 'VIBRATION_SENSOR',
-        vibrationStatus: 'NOT_DETECTED',
-        sensorValue: 0.15,
-        batteryLevel: 45,
-        isOnline: true
-      },
-      aiTrustScore: 35,
-      verificationProbability: 40,
-      expiresAt: '2026-02-11T09:15:00.000Z'
-    }
-  ]
+  const [threshold, setThreshold] = useState(50)
 
   useEffect(() => {
-    setTimeout(() => {
-      setReports(mockReports)
-      setLoading(false)
-    }, 800)
+    fetchPendingReports()
   }, [])
 
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = report.society.societyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.submittedBy.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    if (filterStatus === 'all') return matchesSearch
-    if (filterStatus === 'high') return matchesSearch && report.aiTrustScore >= 80
-    if (filterStatus === 'medium') return matchesSearch && report.aiTrustScore >= 50 && report.aiTrustScore < 80
-    if (filterStatus === 'low') return matchesSearch && report.aiTrustScore < 50
-    return matchesSearch
-  })
+  useEffect(() => {
+    filterReports()
+  }, [searchTerm, filterStatus, reports])
+
+  const fetchPendingReports = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await reportsAPI.getOfficerPending()
+      const data = response.data.data
+      setReports(data?.reports || [])
+      setFilteredReports(data?.reports || [])
+      setThreshold(data?.autoApprovalThreshold || 50)
+    } catch (err) {
+      console.error('Error fetching pending reports:', err)
+      setError(err.response?.data?.message || 'Failed to load pending reports')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filterReports = () => {
+    let filtered = [...reports]
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(report => {
+        const societyName = report.society?.societyName || report.societyAccountId?.societyName || ''
+        const submitterName = report.submittedBy?.name || ''
+        return (
+          societyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          submitterName.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      })
+    }
+
+    // AI Score filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(report => {
+        const score = report.aiTrustScore || 0
+        if (filterStatus === 'high') return score >= 80
+        if (filterStatus === 'medium') return score >= 50 && score < 80
+        if (filterStatus === 'low') return score < 50
+        return true
+      })
+    }
+
+    setFilteredReports(filtered)
+  }
 
   const getDaysUntilExpiry = (dateString) => {
+    if (!dateString) return 0
     const expiry = new Date(dateString)
     const today = new Date()
     const diffTime = expiry - today
@@ -154,15 +87,38 @@ const PendingReports = () => {
   }
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-success bg-emerald-50 border-emerald-200'
-    if (score >= 50) return 'text-warning bg-yellow-50 border-yellow-200'
-    return 'text-danger bg-red-50 border-red-200'
+    if (score >= 80) return 'text-green-600 bg-green-50 border-green-200'
+    if (score >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    return 'text-red-600 bg-red-50 border-red-200'
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="card p-8 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Reports</h3>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <button onClick={fetchPendingReports} className="btn-primary flex items-center gap-2 mx-auto">
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
       </div>
     )
   }
@@ -182,6 +138,18 @@ const PendingReports = () => {
         </div>
       </div>
 
+      {/* Guidelines Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+        <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+        <div className="text-sm text-blue-800">
+          <p className="font-semibold mb-1">Review Guidelines</p>
+          <p>
+            Reports with AI Trust Score ≥ {threshold}% are auto-approved. 
+            Please prioritize reports with low AI scores or those expiring soon.
+          </p>
+        </div>
+      </div>
+
       {/* Search & Filter */}
       <div className="card">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -192,7 +160,7 @@ const PendingReports = () => {
               placeholder="Search by society or resident name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -200,7 +168,7 @@ const PendingReports = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             >
               <option value="all">All Scores</option>
               <option value="high">High Trust (≥80%)</option>
@@ -215,33 +183,40 @@ const PendingReports = () => {
       <div className="space-y-4">
         {filteredReports.map((report) => {
           const daysLeft = getDaysUntilExpiry(report.expiresAt)
+          const societyName = report.society?.societyName || report.societyAccountId?.societyName || 'Unknown Society'
+          const submitterName = report.submittedBy?.name || 'Unknown'
+          
           return (
-            <div key={report._id} className="card hover:shadow-lg transition-shadow">
+            <div key={report.reportId || report._id} className="card hover:shadow-lg transition-shadow">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {/* Left: Society Info */}
                 <div className="flex-1">
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-6 h-6 text-primary" />
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-bold text-gray-900">{report.society.societyName}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getScoreColor(report.aiTrustScore)}`}>
-                          AI Score: {report.aiTrustScore}%
-                        </span>
+                        <h3 className="text-lg font-bold text-gray-900">{societyName}</h3>
+                        {report.aiTrustScore && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getScoreColor(report.aiTrustScore)}`}>
+                            AI Score: {report.aiTrustScore}%
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
                         <span className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>Submitted: {new Date(report.submissionDate).toLocaleDateString()}</span>
+                          <Clock className="w-4 h-4" />
+                          <span>Submitted: {formatDate(report.submissionDate)}</span>
                         </span>
-                        <span className="flex items-center space-x-1">
-                          <MapPin className="w-4 h-4" />
-                          <span>Lat: {report.gpsMetadata.latitude.toFixed(4)}, Lng: {report.gpsMetadata.longitude.toFixed(4)}</span>
-                        </span>
+                        {report.gpsMetadata && (
+                          <span className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>Lat: {report.gpsMetadata.latitude?.toFixed(4)}, Lng: {report.gpsMetadata.longitude?.toFixed(4)}</span>
+                          </span>
+                        )}
                         <span className={`flex items-center space-x-1 font-medium ${
-                          daysLeft <= 2 ? 'text-danger' : daysLeft <= 4 ? 'text-warning' : 'text-gray-500'
+                          daysLeft <= 2 ? 'text-red-600' : daysLeft <= 4 ? 'text-yellow-600' : 'text-gray-500'
                         }`}>
                           <Clock className="w-4 h-4" />
                           <span>{daysLeft} days left</span>
@@ -249,14 +224,18 @@ const PendingReports = () => {
                       </div>
                       <div className="mt-3 flex items-center space-x-4 text-sm">
                         <span className="text-gray-600">
-                          <span className="font-medium">Submitted by:</span> {report.submittedBy.name}
+                          <span className="font-medium">Submitted by:</span> {submitterName}
                         </span>
-                        <span className="text-gray-600">
-                          <span className="font-medium">Images:</span> {report.submissionImages.length}
-                        </span>
-                        <span className="text-gray-600">
-                          <span className="font-medium">IoT:</span> {report.iotSensorData.vibrationStatus === 'DETECTED' ? 'Active' : 'Inactive'}
-                        </span>
+                        {report.submissionImages && (
+                          <span className="text-gray-600">
+                            <span className="font-medium">Images:</span> {report.submissionImages.length}
+                          </span>
+                        )}
+                        {report.iotSensorData && (
+                          <span className="text-gray-600">
+                            <span className="font-medium">IoT:</span> {report.iotSensorData.vibrationStatus === 'DETECTED' ? 'Active' : 'Inactive'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -265,7 +244,7 @@ const PendingReports = () => {
                 {/* Right: Actions */}
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={() => navigate(`/report/${report._id}`)}
+                    onClick={() => navigate(`/report/${report.reportId || report._id}`)}
                     className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
@@ -275,21 +254,23 @@ const PendingReports = () => {
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-500">Verification Probability</span>
-                  <span className="font-semibold text-gray-900">{report.verificationProbability}%</span>
+              {report.verificationProbability && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-gray-500">Verification Probability</span>
+                    <span className="font-semibold text-gray-900">{report.verificationProbability}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        report.verificationProbability >= 80 ? 'bg-green-500' :
+                        report.verificationProbability >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${report.verificationProbability}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full ${
-                      report.verificationProbability >= 80 ? 'bg-success' :
-                      report.verificationProbability >= 50 ? 'bg-warning' : 'bg-danger'
-                    }`}
-                    style={{ width: `${report.verificationProbability}%` }}
-                  ></div>
-                </div>
-              </div>
+              )}
             </div>
           )
         })}
@@ -298,8 +279,15 @@ const PendingReports = () => {
       {filteredReports.length === 0 && (
         <div className="card text-center py-12">
           <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No pending reports</h3>
-          <p className="text-gray-500">All reports have been reviewed</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {searchTerm || filterStatus !== 'all' ? 'No matching reports' : 'No pending reports'}
+          </h3>
+          <p className="text-gray-500">
+            {searchTerm || filterStatus !== 'all' 
+              ? 'Try adjusting your search or filters'
+              : 'All reports have been reviewed. Great job!'
+            }
+          </p>
         </div>
       )}
     </div>
