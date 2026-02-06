@@ -2,7 +2,11 @@ import mongoose from "mongoose";
 import type { Request, Response } from "express";
 import Report from "../models/Report.js";
 import SocietyAccount from "../models/SocietyAccount.js";
+import User from "../models/User.js";
 import ROLES_LIST from "../config/roles_list.js";
+import { VERIFICATION_CONFIG } from "../config/verification.js";
+import { autoProcessExpiredReports } from "../services/schedulerService.js";
+import notificationService from "../services/notificationService.js";
 
 export const getPendingReviews = async (
   req: Request,
@@ -316,32 +320,269 @@ export const expireOldReports = async (
   res: Response
 ): Promise<void> => {
   try {
-    const now = new Date();
-
-    const expiredReports = await Report.updateMany(
-      {
-        verificationStatus: "PENDING",
-        expiresAt: { $lt: now },
-      },
-      {
-        $set: {
-          verificationStatus: "EXPIRED",
-          approvalType: "NONE",
-        },
-      }
-    );
+    const result = await autoProcessExpiredReports();
 
     res.status(200).json({
       success: true,
-      message: `${expiredReports.modifiedCount} reports expired`,
+      message: `Processed ${result.processedCount} reports`,
       data: {
-        expiredCount: expiredReports.modifiedCount,
+        processedCount: result.processedCount,
+        approvedCount: result.approvedCount,
+        rejectedCount: result.rejectedCount,
+        errors: result.errors,
       },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Error expiring reports",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getOfficerPendingReports = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const officerId = (req as any).user?.userId;
+
+    const pendingReports = await Report.find({
+      verificationStatus: "PENDING",
+    })
+      .populate("societyAccountId", "societyName email phone address")
+      .populate("submittedBy", "name email phone")
+      .sort({ submissionDate: 1 })
+      .lean();
+
+    const formattedReports = pendingReports.map((report) => {
+      const societyData = report.societyAccountId as unknown as {
+        _id: mongoose.Types.ObjectId;
+        societyName: string;
+        email: string;
+        phone: string;
+      } | null;
+      const submittedByData = report.submittedBy as unknown as {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        email: string;
+        phone: string;
+      } | null;
+
+      const daysUntilExpiry = Math.ceil(
+        (new Date(report.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+
+      return {
+        reportId: report._id,
+        submissionDate: report.submissionDate,
+        daysUntilExpiry: Math.max(0, daysUntilExpiry),
+        society: {
+          id: societyData?._id,
+          societyName: societyData?.societyName || "Unknown",
+          email: societyData?.email || "Unknown",
+          phone: societyData?.phone || "Unknown",
+        },
+        submittedBy: {
+          id: submittedByData?._id,
+          name: submittedByData?.name || "Unknown",
+          email: submittedByData?.email || "Unknown",
+        },
+        submissionImages: report.submissionImages,
+        gpsMetadata: report.gpsMetadata,
+        iotSensorData: report.iotSensorData,
+        verificationProbability: report.verificationProbability,
+        aiTrustScore: report.aiTrustScore,
+        autoApprovalThreshold: VERIFICATION_CONFIG.AUTO_APPROVAL_THRESHOLD,
+        expiresAt: report.expiresAt,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Pending reports retrieved successfully",
+      data: {
+        count: formattedReports.length,
+        reports: formattedReports,
+        autoApprovalThreshold: VERIFICATION_CONFIG.AUTO_APPROVAL_THRESHOLD,
+        reportExpiryDays: VERIFICATION_CONFIG.REPORT_EXPIRY_DAYS,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching pending reports",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getOfficerReviewedReports = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const officerId = (req as any).user?.userId;
+
+    const reviewedReports = await Report.find({
+      officerId: new mongoose.Types.ObjectId(officerId),
+      verificationStatus: { $in: ["OFFICER_APPROVED", "REJECTED"] },
+    })
+      .populate("societyAccountId", "societyName email")
+      .populate("submittedBy", "name email")
+      .sort({ reviewTimestamp: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Reviewed reports retrieved successfully",
+      data: {
+        count: reviewedReports.length,
+        reports: reviewedReports,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching reviewed reports",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getOfficerNotifications = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const officerId = (req as any).user?.userId;
+    const { unreadOnly, limit, offset } = req.query;
+
+    const result = await notificationService.getOfficerNotifications(officerId, {
+      unreadOnly: unreadOnly === "true",
+      limit: limit ? parseInt(limit as string) : 50,
+      offset: offset ? parseInt(offset as string) : 0,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Notifications retrieved successfully",
+      data: {
+        notifications: result.notifications,
+        total: result.total,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching notifications",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const markNotificationRead = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const officerId = (req as any).user?.userId;
+
+    if (!officerId) {
+      res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      });
+      return;
+    }
+
+    const success = await notificationService.markNotificationAsRead(id as string, officerId as string);
+
+    if (success) {
+      res.status(200).json({
+        success: true,
+        message: "Notification marked as read",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Notification not found",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error marking notification as read",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getDashboardStats = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const officerId = (req as any).user?.userId;
+
+    const [
+      pendingCount,
+      reviewedTodayCount,
+      approvedCount,
+      rejectedCount,
+      autoApprovedCount,
+    ] = await Promise.all([
+      Report.countDocuments({ verificationStatus: "PENDING" }),
+      Report.countDocuments({
+        officerId: new mongoose.Types.ObjectId(officerId),
+        reviewTimestamp: {
+          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      }),
+      Report.countDocuments({
+        officerId: new mongoose.Types.ObjectId(officerId),
+        verificationStatus: "OFFICER_APPROVED",
+      }),
+      Report.countDocuments({
+        officerId: new mongoose.Types.ObjectId(officerId),
+        verificationStatus: "REJECTED",
+      }),
+      Report.countDocuments({
+        verificationStatus: "AUTO_APPROVED",
+      }),
+    ]);
+
+    const recentExpiringReports = await Report.find({
+      verificationStatus: "PENDING",
+      expiresAt: {
+        $gte: new Date(),
+        $lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      },
+    })
+      .populate("societyAccountId", "societyName")
+      .sort({ expiresAt: 1 })
+      .limit(5)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Dashboard statistics retrieved successfully",
+      data: {
+        pendingReports: pendingCount,
+        reviewedToday: reviewedTodayCount,
+        totalApproved: approvedCount,
+        totalRejected: rejectedCount,
+        autoApproved: autoApprovedCount,
+        autoApprovalThreshold: VERIFICATION_CONFIG.AUTO_APPROVAL_THRESHOLD,
+        recentExpiringReports,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard stats",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

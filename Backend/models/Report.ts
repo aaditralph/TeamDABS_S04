@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { VERIFICATION_CONFIG } from "../config/verification.js";
 
 export type VerificationStatus = "PENDING" | "AUTO_APPROVED" | "OFFICER_APPROVED" | "REJECTED" | "EXPIRED";
 export type ApprovalType = "OFFICER" | "AUTOMATIC" | "NONE";
@@ -44,6 +45,11 @@ export interface IReportDocument extends mongoose.Document {
   rejectionReason?: string;
   rebateAmount?: number;
   expiresAt: Date;
+  notifiedOfficers: mongoose.Types.ObjectId[];
+  notificationSentAt?: Date;
+  lastReminderAt?: Date;
+  autoProcessedAt?: Date;
+  autoProcessedBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -217,8 +223,28 @@ const ReportSchema = new mongoose.Schema<IReportDocument>(
       type: Date,
       required: true,
       default: function () {
-        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + VERIFICATION_CONFIG.REPORT_EXPIRY_DAYS);
+        return expiryDate;
       },
+    },
+    notifiedOfficers: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+    },
+    notificationSentAt: {
+      type: Date,
+    },
+    lastReminderAt: {
+      type: Date,
+    },
+    autoProcessedAt: {
+      type: Date,
+    },
+    autoProcessedBy: {
+      type: String,
+      default: "SYSTEM_AUTO_PROCESSOR",
     },
   },
   {
@@ -230,6 +256,8 @@ ReportSchema.index({ societyAccountId: 1, submissionDate: -1 });
 ReportSchema.index({ verificationStatus: 1 });
 ReportSchema.index({ expiresAt: 1 });
 ReportSchema.index({ submittedBy: 1 });
+ReportSchema.index({ notifiedOfficers: 1 });
+ReportSchema.index({ verificationStatus: 1, expiresAt: 1 });
 
 ReportSchema.pre("save", function (this: IReportDocument) {
   if (this.verificationStatus === "PENDING" && new Date() > this.expiresAt) {

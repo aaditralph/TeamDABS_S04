@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import connectDB from "./config/database.js";
 import { seedAdmin } from "./config/seeder.js";
+import { schedulerService } from "./services/index.js";
 import app from "./src/app.js";
 
 dotenv.config();
@@ -11,8 +12,9 @@ const startServer = async () => {
   try {
     await connectDB();
     
-    // Seed admin user
     await seedAdmin();
+    
+    schedulerService.startScheduler();
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

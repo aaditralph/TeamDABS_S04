@@ -5,6 +5,11 @@ import {
   getReportsHistory,
   getAllReports,
   expireOldReports,
+  getOfficerPendingReports,
+  getOfficerReviewedReports,
+  getOfficerNotifications,
+  markNotificationRead,
+  getDashboardStats,
 } from "../controllers/bmcController.js";
 import { protect } from "../middleware/auth.js";
 import { authorize } from "../middleware/authorize.js";
@@ -45,6 +50,41 @@ router.post(
   protect,
   authorize([ROLES_LIST.admin]),
   expireOldReports
+);
+
+router.get(
+  "/officer/pending",
+  protect,
+  authorize([ROLES_LIST.officer]),
+  getOfficerPendingReports
+);
+
+router.get(
+  "/officer/reviewed",
+  protect,
+  authorize([ROLES_LIST.officer]),
+  getOfficerReviewedReports
+);
+
+router.get(
+  "/officer/notifications",
+  protect,
+  authorize([ROLES_LIST.officer]),
+  getOfficerNotifications
+);
+
+router.patch(
+  "/officer/notifications/:id/read",
+  protect,
+  authorize([ROLES_LIST.officer]),
+  markNotificationRead
+);
+
+router.get(
+  "/officer/dashboard",
+  protect,
+  authorize([ROLES_LIST.officer]),
+  getDashboardStats
 );
 
 export default router;

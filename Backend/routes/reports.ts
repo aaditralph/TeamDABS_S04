@@ -10,7 +10,7 @@ router.get(
   "/history/:societyId",
   protect,
   authorize([ROLES_LIST.officer, ROLES_LIST.admin]),
-  getReportsHistory
+  getReportsHistory,
 );
 
 export default router;
