@@ -5,7 +5,8 @@ import ROLES_LIST from "../config/roles_list.js";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, phone, societyName } = req.body;
+    const { email, password, societyName, meterNumber, Ward, address } =
+      req.body;
 
     const existingUser = await User.findOne({
       email: email.toLowerCase(),
@@ -21,10 +22,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     const society = await User.create({
-      name,
       email: email.toLowerCase(),
       password,
-      phone,
+      meterNumber,
+      Ward,
+      address,
       role: ROLES_LIST.society,
       societyName,
       isVerified: false,
@@ -38,9 +40,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         token,
         user: {
           id: society._id,
-          name: society.name,
           email: society.email,
-          phone: society.phone,
+          meterNumber: society.meterNumber,
+          Ward: society.Ward,
+          address: society.address,
           role: society.role,
           societyName: society.societyName,
           isVerified: society.isVerified,
