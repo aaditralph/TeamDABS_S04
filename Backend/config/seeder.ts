@@ -22,7 +22,7 @@ export const seedAdmin = async (): Promise<void> => {
     // Create admin user with skip validation
     const adminData = {
       name: "DABS",
-      email: "DABS",
+      email: "DABS@gmail.com",
       password: hashedPassword,
       phone: "0000000000",
       role: ROLES_LIST.admin,
