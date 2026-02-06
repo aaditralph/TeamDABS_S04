@@ -1,15 +1,21 @@
-import React from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
-  Building2, 
+  ClipboardList, 
+  CheckCircle, 
+  Bell, 
   LogOut, 
   Shield,
-  Bell
+  Menu,
+  X
 } from 'lucide-react'
 
 const Layout = ({ user, onLogout }) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(3)
 
   const handleLogout = () => {
     onLogout()
@@ -18,84 +24,133 @@ const Layout = ({ user, onLogout }) => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/pending-reports', label: 'Pending Reports', icon: ClipboardList, badge: 'count' },
+    { path: '/reviewed-reports', label: 'Reviewed', icon: CheckCircle },
+    { path: '/notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
   ]
+
+  const isActive = (path) => {
+    if (path === '/') return location.pathname === '/'
+    return location.pathname.startsWith(path)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary text-white rounded-lg shadow-lg"
+      >
+        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar text-white flex flex-col">
-        <div className="p-6 border-b border-gray-700">
+      <aside className={`${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static inset-y-0 left-0 w-72 bg-sidebar text-white flex flex-col z-40 transition-transform duration-300`}>
+        <div className="p-6 border-b border-gray-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+              <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">BMC Admin</h1>
-              <p className="text-xs text-gray-400">Building Oversight</p>
+              <h1 className="font-bold text-xl tracking-tight">BMC Officer</h1>
+              <p className="text-xs text-gray-400">Verification Portal</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                }`
-              }
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
+                isActive(item.path)
+                  ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              }`}
             >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
+              <div className="flex items-center space-x-3">
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </div>
+              {item.badge && item.badge === 'count' && (
+                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  15
+                </span>
+              )}
+              {item.badge && typeof item.badge === 'number' && item.badge > 0 && (
+                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
-              <span className="text-sm font-bold">{user?.name?.charAt(0) || 'A'}</span>
+        <div className="p-4 border-t border-gray-800">
+          <div className="flex items-center space-x-3 mb-4 p-3 bg-gray-800/50 rounded-xl">
+            <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center">
+              <span className="text-lg font-bold text-white">{user?.name?.charAt(0) || 'O'}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name || 'Admin User'}</p>
-              <p className="text-xs text-gray-400 truncate">{user?.email || 'admin@bmc.gov'}</p>
+              <p className="text-sm font-medium text-white truncate">{user?.name || 'Officer'}</p>
+              <p className="text-xs text-gray-400 truncate">{user?.email || 'officer@bmc.gov'}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 text-gray-300 hover:text-white w-full px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200"
+            className="flex items-center space-x-2 text-gray-400 hover:text-white w-full px-4 py-3 rounded-xl hover:bg-gray-800 transition-all duration-200"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Logout</span>
           </button>
         </div>
       </aside>
 
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-800">Building Oversight Dashboard</h2>
+        <header className="bg-white shadow-sm border-b border-gray-200 px-4 lg:px-8 py-4 lg:ml-0">
+          <div className="flex items-center justify-between ml-12 lg:ml-0">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {location.pathname === '/' && 'Dashboard'}
+                {location.pathname === '/pending-reports' && 'Pending Reports'}
+                {location.pathname === '/reviewed-reports' && 'Reviewed Reports'}
+                {location.pathname === '/notifications' && 'Notifications'}
+                {location.pathname.startsWith('/report/') && 'Report Details'}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-600 hover:text-primary transition-colors flex items-center justify-center w-10 h-10">
+              <button className="relative p-2 text-gray-500 hover:text-primary transition-colors rounded-lg hover:bg-gray-100">
                 <Bell className="w-6 h-6" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-danger rounded-full border-2 border-white"></span>
+                )}
               </button>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Role:</span>
-                <span className="px-2 py-1 bg-primary text-white text-xs rounded-full">Admin</span>
+              <div className="hidden sm:flex items-center space-x-2">
+                <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                  Officer
+                </span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

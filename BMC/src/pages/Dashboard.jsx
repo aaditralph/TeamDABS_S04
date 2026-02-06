@@ -1,168 +1,61 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, ArrowUpDown, Building2, CheckCircle, Clock, AlertTriangle, Eye } from 'lucide-react'
-import axios from 'axios'
+import { 
+  ClipboardList, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  TrendingUp,
+  Calendar,
+  ArrowRight
+} from 'lucide-react'
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const [societies, setSocieties] = useState([])
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [wardFilter, setWardFilter] = useState('all')
-  const [sortConfig, setSortConfig] = useState({ key: 'sustainabilityScore', direction: 'desc' })
 
-  // Mock data - replace with actual API calls
-  const mockSocieties = [
-    {
-      _id: '1',
-      name: 'Green Valley Residency',
-      societyName: 'Green Valley',
-      ward: 'A-101',
-      sustainabilityScore: 92,
-      status: 'verified',
-      email: 'secretary@greenvalley.com',
-      createdAt: '2026-01-15T10:00:00Z',
-      lastActive: '2026-02-05'
-    },
-    {
-      _id: '2',
-      name: 'Sunshine Apartments',
-      societyName: 'Sunshine Complex',
-      ward: 'B-205',
-      sustainabilityScore: 78,
-      status: 'verified',
-      email: 'admin@sunshine.com',
-      createdAt: '2026-01-10T10:00:00Z',
-      lastActive: '2026-02-04'
-    },
-    {
-      _id: '3',
-      name: 'Park View Society',
-      societyName: 'Park View',
-      ward: 'A-103',
-      sustainabilityScore: 45,
-      status: 'flagged',
-      email: 'contact@parkview.com',
-      createdAt: '2026-01-08T10:00:00Z',
-      lastActive: '2026-02-01'
-    },
-    {
-      _id: '4',
-      name: 'Riverside Heights',
-      societyName: 'Riverside',
-      ward: 'C-310',
-      sustainabilityScore: 88,
-      status: 'verified',
-      email: 'info@riverside.com',
-      createdAt: '2026-01-20T10:00:00Z',
-      lastActive: '2026-02-05'
-    },
-    {
-      _id: '5',
-      name: 'Metro Towers',
-      societyName: 'Metro Complex',
-      ward: 'A-105',
-      sustainabilityScore: 34,
-      status: 'pending',
-      email: 'metro@towers.com',
-      createdAt: '2026-02-01T10:00:00Z',
-      lastActive: '2026-02-03'
-    },
-    {
-      _id: '6',
-      name: 'Garden City',
-      societyName: 'Garden City Residency',
-      ward: 'B-220',
-      sustainabilityScore: 95,
-      status: 'verified',
-      email: 'garden@city.com',
-      createdAt: '2025-12-15T10:00:00Z',
-      lastActive: '2026-02-06'
-    },
-    {
-      _id: '7',
-      name: 'Urban Nest',
-      societyName: 'Urban Nest Complex',
-      ward: 'C-315',
-      sustainabilityScore: 28,
-      status: 'flagged',
-      email: 'contact@urbannest.com',
-      createdAt: '2026-01-25T10:00:00Z',
-      lastActive: '2026-01-28'
-    }
-  ]
+  // Mock data based on API documentation
+  const mockStats = {
+    pendingReports: 15,
+    reviewedToday: 5,
+    totalApproved: 120,
+    totalRejected: 8,
+    autoApproved: 45,
+    recentExpiringReports: [
+      {
+        _id: '1',
+        societyAccountId: {
+          _id: 's1',
+          societyName: 'Green Valley Apartments'
+        },
+        expiresAt: '2026-02-09T10:30:00.000Z'
+      },
+      {
+        _id: '2',
+        societyAccountId: {
+          _id: 's2',
+          societyName: 'Sunrise Society'
+        },
+        expiresAt: '2026-02-10T10:30:00.000Z'
+      }
+    ]
+  }
 
   useEffect(() => {
     // Simulate API call
     setTimeout(() => {
-      setSocieties(mockSocieties)
+      setStats(mockStats)
       setLoading(false)
-    }, 500)
+    }, 800)
   }, [])
 
-  // Get unique wards for filter
-  const wards = ['all', ...new Set(societies.map(s => s.ward))]
-
-  // Filter and sort societies
-  const filteredSocieties = societies
-    .filter(society => {
-      const matchesSearch = society.societyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           society.name.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesWard = wardFilter === 'all' || society.ward === wardFilter
-      return matchesSearch && matchesWard
-    })
-    .sort((a, b) => {
-      if (sortConfig.key === 'sustainabilityScore') {
-        return sortConfig.direction === 'asc' 
-          ? a.sustainabilityScore - b.sustainabilityScore
-          : b.sustainabilityScore - a.sustainabilityScore
-      }
-      if (sortConfig.key === 'name') {
-        return sortConfig.direction === 'asc'
-          ? a.societyName.localeCompare(b.societyName)
-          : b.societyName.localeCompare(a.societyName)
-      }
-      return 0
-    })
-
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
-    }))
-  }
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'verified':
-        return <CheckCircle className="w-5 h-5 text-success" />
-      case 'pending':
-        return <Clock className="w-5 h-5 text-warning" />
-      case 'flagged':
-        return <AlertTriangle className="w-5 h-5 text-danger" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusBadge = (status) => {
-    const styles = {
-      verified: 'status-verified',
-      pending: 'status-pending',
-      flagged: 'status-flagged'
-    }
-    return (
-      <span className={`status-badge ${styles[status]} flex items-center space-x-1 w-fit`}>
-        {getStatusIcon(status)}
-        <span className="capitalize">{status}</span>
-      </span>
-    )
-  }
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-success'
-    if (score >= 50) return 'text-warning'
-    return 'text-danger'
+  const getDaysUntilExpiry = (dateString) => {
+    const expiry = new Date(dateString)
+    const today = new Date()
+    const diffTime = expiry - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
   }
 
   if (loading) {
@@ -175,189 +68,186 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card bg-gradient-to-br from-primary to-primary-dark text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">Total Societies</p>
-              <p className="text-3xl font-bold">{societies.length}</p>
-            </div>
-            <Building2 className="w-10 h-10 text-blue-200" />
+      {/* Welcome Section */}
+      <div className="card bg-gradient-to-r from-primary to-secondary text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Welcome back, Officer!</h2>
+            <p className="text-blue-100">
+              You have {stats.pendingReports} pending reports to review today.
+            </p>
           </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Verified</p>
-              <p className="text-3xl font-bold text-success">
-                {societies.filter(s => s.status === 'verified').length}
-              </p>
+          <div className="hidden md:block">
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+              <ClipboardList className="w-8 h-8 text-white" />
             </div>
-            <CheckCircle className="w-10 h-10 text-success opacity-20" />
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Pending</p>
-              <p className="text-3xl font-bold text-warning">
-                {societies.filter(s => s.status === 'pending').length}
-              </p>
-            </div>
-            <Clock className="w-10 h-10 text-warning opacity-20" />
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Flagged</p>
-              <p className="text-3xl font-bold text-danger">
-                {societies.filter(s => s.status === 'flagged').length}
-              </p>
-            </div>
-            <AlertTriangle className="w-10 h-10 text-danger opacity-20" />
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="card border-l-4 border-warning">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Pending Reports</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.pendingReports}</p>
+              <p className="text-warning text-sm mt-1">Needs review</p>
+            </div>
+            <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+              <Clock className="w-6 h-6 text-warning" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-success">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Reviewed Today</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.reviewedToday}</p>
+              <p className="text-success text-sm mt-1">+2 from yesterday</p>
+            </div>
+            <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-success" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-primary">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Approved</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalApproved}</p>
+              <p className="text-primary text-sm mt-1">All time</p>
+            </div>
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-primary" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-danger">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Rejected</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalRejected}</p>
+              <p className="text-danger text-sm mt-1">All time</p>
+            </div>
+            <div className="w-12 h-12 bg-danger/10 rounded-xl flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-danger" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions & Expiring Reports */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Quick Actions */}
+        <div className="card">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/pending-reports')}
+              className="w-full flex items-center justify-between p-4 bg-warning/5 border border-warning/20 rounded-xl hover:bg-warning/10 transition-colors group"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-warning" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900">Review Pending</p>
+                  <p className="text-sm text-gray-500">{stats.pendingReports} reports waiting</p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-warning transition-colors" />
+            </button>
+
+            <button
+              onClick={() => navigate('/reviewed-reports')}
+              className="w-full flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl hover:bg-primary/10 transition-colors group"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900">View Reviewed</p>
+                  <p className="text-sm text-gray-500">Check past decisions</p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
+            </button>
+          </div>
+        </div>
+
+        {/* Expiring Soon */}
+        <div className="lg:col-span-2 card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Expiring Soon</h3>
+            <span className="text-sm text-gray-500">Reports expiring within 3 days</span>
+          </div>
+          
+          {stats.recentExpiringReports.length > 0 ? (
+            <div className="space-y-3">
+              {stats.recentExpiringReports.map((report) => {
+                const daysLeft = getDaysUntilExpiry(report.expiresAt)
+                return (
+                  <div
+                    key={report._id}
+                    onClick={() => navigate(`/report/${report._id}`)}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-danger/10 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-danger" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{report.societyAccountId.societyName}</p>
+                        <p className="text-sm text-gray-500">Expires: {new Date(report.expiresAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      daysLeft <= 1 
+                        ? 'bg-red-100 text-red-700' 
+                        : daysLeft <= 2 
+                          ? 'bg-orange-100 text-orange-700' 
+                          : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No reports expiring soon</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Performance Summary */}
       <div className="card">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search society name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Performance Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-4 bg-success/5 rounded-xl">
+            <p className="text-3xl font-bold text-success">{stats.totalApproved}</p>
+            <p className="text-gray-600 mt-1">Total Approved</p>
+            <p className="text-sm text-gray-400">Reports verified</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-5 h-5 text-gray-500" />
-              <select
-                value={wardFilter}
-                onChange={(e) => setWardFilter(e.target.value)}
-                className="input-field w-40"
-              >
-                <option value="all">All Wards</option>
-                {wards.filter(w => w !== 'all').map(ward => (
-                  <option key={ward} value={ward}>Ward {ward}</option>
-                ))}
-              </select>
-            </div>
+          <div className="text-center p-4 bg-primary/5 rounded-xl">
+            <p className="text-3xl font-bold text-primary">{stats.autoApproved}</p>
+            <p className="text-gray-600 mt-1">Auto Approved</p>
+            <p className="text-sm text-gray-400">By AI system</p>
+          </div>
+          <div className="text-center p-4 bg-danger/5 rounded-xl">
+            <p className="text-3xl font-bold text-danger">{stats.totalRejected}</p>
+            <p className="text-gray-600 mt-1">Total Rejected</p>
+            <p className="text-sm text-gray-400">Reports declined</p>
           </div>
         </div>
-      </div>
-
-      {/* Master Table */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Registered Societies</h3>
-          <p className="text-sm text-gray-500">
-            Showing {filteredSocieties.length} of {societies.length} societies
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button 
-                    onClick={() => handleSort('name')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Building Name</span>
-                    <ArrowUpDown className="w-4 h-4" />
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ward
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button 
-                    onClick={() => handleSort('sustainabilityScore')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Sustainability Score</span>
-                    <ArrowUpDown className="w-4 h-4" />
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Active
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSocieties.map((society) => (
-                <tr key={society._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Building2 className="w-5 h-5 text-gray-500" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{society.societyName}</div>
-                        <div className="text-sm text-gray-500">{society.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">{society.ward}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className={`text-lg font-bold ${getScoreColor(society.sustainabilityScore)}`}>
-                        {society.sustainabilityScore}
-                      </span>
-                      <span className="text-gray-400 text-sm ml-1">/100</span>
-                    </div>
-                    <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
-                      <div 
-                        className={`h-full rounded-full ${
-                          society.sustainabilityScore >= 80 ? 'bg-success' :
-                          society.sustainabilityScore >= 50 ? 'bg-warning' : 'bg-danger'
-                        }`}
-                        style={{ width: `${society.sustainabilityScore}%` }}
-                      ></div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(society.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(society.lastActive).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => navigate(`/society/${society._id}`)}
-                      className="flex items-center space-x-1 text-primary hover:text-primary-dark font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span>View Details</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredSocieties.length === 0 && (
-          <div className="text-center py-12">
-            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No societies found matching your criteria</p>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -12,10 +12,16 @@ export default {
           dark: '#1d4ed8',
           light: '#3b82f6'
         },
-        sidebar: '#1e293b',
+        secondary: {
+          DEFAULT: '#0891b2',
+          dark: '#0e7490',
+          light: '#22d3ee'
+        },
+        sidebar: '#0f172a',
         success: '#10b981',
-        danger: '#dc2626',
-        warning: '#f59e0b'
+        danger: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
       }
     },
   },

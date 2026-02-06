@@ -1,15 +1,13 @@
 import React, { useState } from 'react'
-import { Shield, Lock, User, Mail } from 'lucide-react'
-import axios from 'axios'
+import { Shield, Lock, Mail, Eye, EyeOff } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const Login = ({ onLogin }) => {
-  const [isRegistering, setIsRegistering] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   })
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -18,106 +16,62 @@ const Login = ({ onLogin }) => {
     setLoading(true)
     setError('')
 
-    if (isRegistering) {
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match')
-        setLoading(false)
-        return
-      }
-      // Registration successful - auto login and redirect to dashboard
-      const userData = {
-        token: 'token-' + Date.now(),
-        user: {
-          id: 'user-' + Date.now(),
-          name: formData.name,
-          email: formData.email,
-          role: 11,
-          isSuperAdmin: false
+    try {
+      // For demo purposes - simulate API call
+      // In production, replace with: await axios.post('/api/officer/login', formData)
+      
+      setTimeout(() => {
+        const userData = {
+          token: 'officer-token-' + Date.now(),
+          user: {
+            id: 'officer-' + Date.now(),
+            name: formData.email.split('@')[0],
+            email: formData.email,
+            role: 12,
+            isVerified: true
+          }
         }
-      }
-      onLogin(userData)
+        onLogin(userData)
+        setLoading(false)
+      }, 1000)
+    } catch (err) {
+      setError('Invalid credentials. Please try again.')
       setLoading(false)
-      return
     }
-
-    // Login without backend - accept any credentials
-    const userData = {
-      token: 'token-' + Date.now(),
-      user: {
-        id: 'user-' + Date.now(),
-        name: formData.email.split('@')[0],
-        email: formData.email,
-        role: 11,
-        isSuperAdmin: false
-      }
-    }
-    onLogin(userData)
-    setLoading(false)
-  }
-
-  const switchToLogin = () => {
-    setIsRegistering(false)
-    setError('')
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sidebar via-blue-900 to-primary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sidebar via-slate-800 to-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="card bg-white/95 backdrop-blur-sm">
+        <div className="card bg-white/95 backdrop-blur-sm shadow-2xl">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-              <Shield className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl mb-4 shadow-lg">
+              <Shield className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">BMC Admin Portal</h1>
-            <p className="text-gray-600 mt-2">
-              {isRegistering ? 'Create New Account' : 'Municipal Corporation Building Oversight'}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Officer Login</h1>
+            <p className="text-gray-600 mt-2">BMC Verification Portal</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegistering && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter your full name"
-                    required={isRegistering}
-                  />
-                </div>
-              </div>
-            )}
-
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Enter your BMC email"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -128,59 +82,52 @@ const Login = ({ onLogin }) => {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
-
-            {isRegistering && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full px-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Confirm your password"
-                    required={isRegistering}
-                  />
-                </div>
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+              className="w-full btn-primary py-3.5 text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
-              {loading ? (isRegistering ? 'Registering...' : 'Signing in...') : (isRegistering ? 'Register' : 'Sign In')}
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Signing in...</span>
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 
-          {!isRegistering && (
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setIsRegistering(true)}
-                className="text-primary hover:text-primary-dark text-sm font-medium"
-              >
-                Don't have an account? Register
-              </button>
-            </div>
-          )}
+          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+            <p className="text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary hover:text-primary-dark font-semibold">
+                Register here
+              </Link>
+            </p>
+          </div>
 
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Authorized Personnel Only</p>
+            <p>Authorized BMC Personnel Only</p>
           </div>
         </div>
       </div>
