@@ -1,0 +1,200 @@
+{
+  "name": "Main AI Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "89774501-6fa5-4a2c-9aaa-808cb694cda3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -512,
+        -16
+      ],
+      "id": "23203cd9-a8db-45f8-8baf-0def546d43ed",
+      "name": "Webhook",
+      "webhookId": "89774501-6fa5-4a2c-9aaa-808cb694cda3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first();\nconst body = JSON.parse(input.json.body.json_payload);\n\nreturn {\n  json: {\n    ...body, // Unpack all fields (reportId, societyId, etc.)\n  },\n  binary: {\n    // Map the uploaded files to clean names\n    meter_img: input.binary.meter_image,\n    compost_img: input.binary.composter_image\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        -16
+      ],
+      "id": "8410e91f-8df9-44d8-add5-2283f7c82516",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "55283fe6-8f5d-4af2-843e-8160e51a0e08",
+              "leftValue": "={{ $json.edge_inference.machine_detected }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "f98e5dab-7af7-4827-b567-a858ba29a935",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "\"Analyze this electric meter.\n\nFind the Serial Number.\n\nRead the kWh usage. Return JSON: {\"scanned_serial\": \"...\", \"reading_kwh\": 123}. If unreadable, return nulls.\"",
+        "imageUrls": "data:image/jpeg;base64,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",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        -112
+      ],
+      "id": "6a3ec6fd-d400-45d2-a4a0-de512b81b860",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WRHcyPx957A7oPBt",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        368,
+        -16
+      ],
+      "id": "4e8a68ab-ac24-49ed-b3b5-b3fdc2128260",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import json\n\n# --- 1. Initialize Response Structure ---\noutput = {\n    \"reportId\": \"UNKNOWN\",\n    \"detectionResults\": {\n        \"meterResults\": [],\n        \"composterResults\": []\n    },\n    \"aiTrustScore\": 0,\n    \"verificationProbability\": 0, # Will be same as TrustScore\n    \"status\": \"COMPLETED\",\n    \"error\": None\n}\n\ntry:\n    # Get input data from previous nodes\n    item = _input.first().json\n    \n    # Basic Info\n    output[\"reportId\"] = item.get(\"reportId\", \"UNKNOWN\")\n    \n    # --- 2. Calculate the Unified Score ---\n    score = 0\n    \n    # Step A: Machine Check (Worth 50 pts)\n    machine_detected = False\n    if \"edge_inference\" in item:\n        machine_detected = item[\"edge_inference\"].get(\"machine_detected\", False)\n    \n    if machine_detected:\n        score += 50\n        output[\"detectionResults\"][\"composterResults\"].append({\n            \"detected\": True, \n            \"message\": \"Compost Machine Verified\"\n        })\n    else:\n        # If machine is missing, score stays 0. We stop here? \n        # (Technically we can't check meter if machine is missing, so score is 0)\n        output[\"detectionResults\"][\"composterResults\"].append({\n            \"detected\": False, \n            \"message\": \"CRITICAL: Machine Not Found\"\n        })\n\n    # Step B: Meter Check (Worth 50 pts total) - Only runs if Machine Found\n    if machine_detected:\n        scanned_sn = item.get(\"scanned_serial\", \"UNKNOWN\")\n        reading_kwh = item.get(\"reading_kwh\", 0)\n        expected_sn = item.get(\"registeredSerial\", \"REF-000\") # From Backend\n        \n        # 1. Serial Match (+30 pts)\n        # Clean strings to prevent whitespace errors\n        clean_scan = str(scanned_sn).strip().upper()\n        clean_expect = str(expected_sn).strip().upper()\n\n        if clean_scan == clean_expect:\n            score += 30\n            output[\"detectionResults\"][\"meterResults\"].append({\n                \"serial_check\": \"PASS\", \n                \"serial\": clean_scan\n            })\n        elif clean_scan == \"UNKNOWN\":\n            # No points, but valid reason\n            output[\"detectionResults\"][\"meterResults\"].append({\n                \"serial_check\": \"WARN\", \n                \"message\": \"OCR Failed / Image Blurry\"\n            })\n        else:\n            # Mismatch! No points.\n            output[\"detectionResults\"][\"meterResults\"].append({\n                \"serial_check\": \"FAIL\", \n                \"expected\": clean_expect,\n                \"found\": clean_scan\n            })\n\n        # 2. Usage Check (+20 pts)\n        # Ensure reading is a number\n        try:\n            kwh_val = float(reading_kwh)\n        except:\n            kwh_val = 0\n\n        if kwh_val >= 25:\n            score += 20\n            output[\"detectionResults\"][\"meterResults\"].append({\n                \"usage_check\": \"PASS\", \n                \"kwh\": kwh_val\n            })\n        else:\n             output[\"detectionResults\"][\"meterResults\"].append({\n                \"usage_check\": \"FAIL\", \n                \"kwh\": kwh_val,\n                \"threshold\": 25\n            })\n\n    # --- 3. Final Assignment ---\n    final_score = max(0, min(100, score)) # Clamp between 0-100\n    \n    output[\"aiTrustScore\"] = final_score\n    output[\"verificationProbability\"] = final_score # SAME VALUE\n\nexcept Exception as e:\n    output[\"status\"] = \"ERROR\"\n    output[\"error\"] = str(e)\n    # If error, scores remain 0\n\nreturn output"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -16
+      ],
+      "id": "e411709c-5d30-4e39-bede-377a2ba54a26",
+      "name": "Code in Python"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "9a706fde-1c54-44c8-83d7-e3754de95afd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f9385a8ad0f45c3a418e97a358eec62e2c3dbd7a31e3b8fadc69828cdc3fbd50"
+  },
+  "id": "82e5vg5Ghs0bLBg6c8pJe",
+  "tags": []
+}
