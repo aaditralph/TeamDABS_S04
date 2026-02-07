@@ -5,7 +5,7 @@ class ApiService {
   // IMPORTANT: 
   // If using Emulator -> Use "http://10.0.2.2:3000"
   // If using Real Phone -> Use "http://192.168.x.x:3000" (Check your laptop IP)
-  static const String baseUrl = "http://192.168.0.103:3000"; 
+  static const String baseUrl = "http://192.168.153.161:3000"; 
 
   // --- 1. LOGIN (The Gateway) ---
   static Future<String?> loginAndGetToken() async {
