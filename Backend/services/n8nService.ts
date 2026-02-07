@@ -4,21 +4,13 @@ import type { IN8NWebhookResponse } from "../models/Report.js";
 export interface N8NPayload {
   reportId: string;
   societyId: string;
-  imageUrls: string[];
+  meterImageUrl?: string;
+  composterImageUrl?: string;
   gpsMetadata: {
     latitude: number;
     longitude: number;
     accuracy: number;
     timestamp: string;
-  };
-  iotSensorData?: {
-    deviceId: string;
-    deviceType: string;
-    vibrationStatus: string;
-    sensorValue?: number;
-    batteryLevel?: number;
-    timestamp: string;
-    isOnline: boolean;
   };
   submittedBy: string;
   submissionDate: string;

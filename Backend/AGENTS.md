@@ -17,6 +17,9 @@ bun run start
 # Start MongoDB (Docker)
 docker-compose up -d
 
+# Seed mock data (societies + 10 reports)
+bun run seed:mock
+
 # Type checking (via TypeScript)
 bun x tsc --noEmit
 ```

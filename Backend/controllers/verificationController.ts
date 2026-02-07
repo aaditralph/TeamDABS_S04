@@ -213,27 +213,20 @@ export const submitReport = async (
     await report.populate("societyAccountId", "societyName");
 
     if (VERIFICATION_CONFIG.N8N_WEBHOOK_URL) {
+      const meterImage = submissionImages.find(img => img.label === "meter_image");
+      const composterImage = submissionImages.find(img => img.label === "composter_image");
+
       const n8nPayload: N8NPayload = {
         reportId: report._id.toString(),
         societyId: data.societyId,
-        imageUrls: data.submissionImages.map((img) => img.url),
+        meterImageUrl: meterImage?.url,
+        composterImageUrl: composterImage?.url,
         gpsMetadata: {
           latitude: data.gpsMetadata.latitude,
           longitude: data.gpsMetadata.longitude,
           accuracy: data.gpsMetadata.accuracy,
           timestamp: data.gpsMetadata.timestamp,
         },
-        iotSensorData: data.iotSensorData
-          ? {
-              deviceId: data.iotSensorData.deviceId,
-              deviceType: data.iotSensorData.deviceType,
-              vibrationStatus: data.iotSensorData.vibrationStatus,
-              sensorValue: data.iotSensorData.sensorValue,
-              batteryLevel: data.iotSensorData.batteryLevel,
-              timestamp: data.iotSensorData.timestamp,
-              isOnline: data.iotSensorData.isOnline,
-            }
-          : undefined,
         submittedBy: userId.toString(),
         submissionDate: report.submissionDate.toISOString(),
       };
@@ -631,12 +624,15 @@ export const submitReportFormData = async (
     await report.populate("societyAccountId", "societyName");
 
     if (VERIFICATION_CONFIG.N8N_WEBHOOK_URL) {
+      const meterImage = submissionImages.find(img => img.label === "meter_image");
+      const composterImage = submissionImages.find(img => img.label === "composter_image");
+
       const n8nPayload: N8NPayload = {
         reportId: report._id.toString(),
         societyId: societyAccountId,
-        imageUrls: submissionImages.map((img) => img.url),
+        meterImageUrl: meterImage?.url,
+        composterImageUrl: composterImage?.url,
         gpsMetadata: gpsMetadata || { latitude: 0, longitude: 0, accuracy: 0, timestamp: new Date().toISOString() },
-        iotSensorData,
         submittedBy: userId.toString(),
         submissionDate: report.submissionDate.toISOString(),
       };
