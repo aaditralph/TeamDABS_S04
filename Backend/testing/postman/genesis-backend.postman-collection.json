@@ -1,0 +1,1603 @@
+{
+  "info": {
+    "_postman_id": "genesis-backend-collection",
+    "name": "Genesis Backend - Complete Testing",
+    "description": "Complete testing collection for Genesis waste management backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "societyToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "residentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "societyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "societyAccountId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health & Setup",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Setup - Create Upload Directories",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// This is a manual setup step",
+                  "console.log('Ensure directories exist: uploads/officers, uploads/verification');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Run this shell command first:\nmkdir -p uploads/officers uploads/verification"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Admin Authentication",
+      "item": [
+        {
+          "name": "Admin Login (DABS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', jsonData.data.token);",
+                  "    console.log('Admin token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"DABS\",\n    \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Officers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/pending-officers",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "pending-officers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Officer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Extract officer ID from previous response if needed",
+                  "console.log('Officer approved - document should be deleted');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/approve-officer/{{officerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "approve-officer", "{{officerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Officer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reject-officer/{{officerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reject-officer", "{{officerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Societies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/pending-societies",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "pending-societies"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Society",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/approve-society/{{societyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "approve-society", "{{societyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Society",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reject-society/{{societyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reject-society", "{{societyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Societies (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/societies",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "societies"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. BMC Officer",
+      "item": [
+        {
+          "name": "Register Officer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('officerId', jsonData.data.user.id);",
+                  "    console.log('Officer ID:', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "John Officer",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "officer@bmc.gov.in",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "Aadhar",
+                  "type": "text"
+                },
+                {
+                  "key": "document",
+                  "type": "file",
+                  "src": "test_document.txt"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/officer/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "officer", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Officer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('officerToken', jsonData.data.token);",
+                  "    console.log('Officer token set successfully');",
+                  "} else {",
+                  "    console.log('Login failed - account may need approval');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"officer@bmc.gov.in\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/officer/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "officer", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Officer Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/officer/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "officer", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. BMC Officer Dashboard",
+      "item": [
+        {
+          "name": "Get Pending Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/pending-reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "pending-reviews"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Review - Approve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Report approved - rebate may be issued');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"action\": \"APPROVE\",\n    \"comments\": \"Verified and approved for rebate\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/review/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "review", "{{reportId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Review - Reject",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"action\": \"REJECT\",\n    \"comments\": \"Insufficient evidence\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/review/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "review", "{{reportId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/officer/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "officer", "dashboard"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Officer Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/officer/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "officer", "notifications"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/officer/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "officer", "notifications", "{{notificationId}}", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "reports"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reports History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{officerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bmc/reports/history/{{societyAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bmc", "reports", "history", "{{societyAccountId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Society Worker",
+      "item": [
+        {
+          "name": "Register Society",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('societyId', jsonData.data.user.id);",
+                  "    pm.collectionVariables.set('societyAccountId', jsonData.data.societyAccountId);",
+                  "    console.log('Society ID:', jsonData.data.user.id);",
+                  "    console.log('Society Account ID:', jsonData.data.societyAccountId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Mike Manager\",\n    \"email\": \"manager@greenvalley.in\",\n    \"password\": \"password123\",\n    \"phone\": \"9876543210\",\n    \"societyName\": \"Green Valley\",\n    \"designation\": \"manager\",\n    \"employee-001\",\Id\": \"GVn    \"address\": {\n        \"street\": \"123 Main Road\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"pincode\": \"400001\"\n    },\n    \"geoLockCoordinates\": {\n        \"latitude\": 19.0760,\n        \"longitude\": 72.8777\n    },\n    \"propertyTaxEstimate\": 500000,\n    \"electricMeterSerialNumber\": \"EM-2024-12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/society/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "society", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Society",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('societyToken', jsonData.data.token);",
+                  "    pm.collectionVariables.set('societyAccountId', jsonData.data.societyAccountId);",
+                  "    console.log('Society token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"manager@greenvalley.in\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/society/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "society", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/society/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "society", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/society/society",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "society", "society"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Compost Weight",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Compost weight updated successfully');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"weight\": 25.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/society/society/compost-weight",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "society", "society", "compost-weight"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Verification System",
+      "item": [
+        {
+          "name": "Submit Verification Report (Upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('reportId', jsonData.data.reportId);",
+                  "    console.log('Report ID:', jsonData.data.reportId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "societyAccountId",
+                  "value": "{{societyAccountId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "meter_image",
+                  "type": "file",
+                  "src": "test-meter.jpg"
+                },
+                {
+                  "key": "composter_image",
+                  "type": "file",
+                  "src": "test-composter.jpg"
+                },
+                {
+                  "key": "gpsLatitude",
+                  "value": "19.0760",
+                  "type": "text"
+                },
+                {
+                  "key": "gpsLongitude",
+                  "value": "72.8777",
+                  "type": "text"
+                },
+                {
+                  "key": "notes",
+                  "value": "Morning verification",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/report/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verification", "report", "upload"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Process Verification (AI Detect)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    console.log('Verification Probability:', jsonData.data.verificationProbability);",
+                  "    console.log('Rebate Amount:', jsonData.data.rebateAmount);",
+                  "    console.log('Status:', jsonData.data.verificationStatus);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reportId\": \"{{reportId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/detect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verification", "detect"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/reports/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verification", "reports", "my"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Report By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{societyToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/reports/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verification", "reports", "{{reportId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Resident",
+      "item": [
+        {
+          "name": "Register Resident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('residentToken', jsonData.data.token);",
+                  "    console.log('Resident token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Jane Resident\",\n    \"email\": \"jane@greenvalley.in\",\n    \"password\": \"password123\",\n    \"phone\": \"9876543210\",\n    \"societyName\": \"Green Valley\",\n    \"flatNumber\": \"A-101\",\n    \"buildingName\": \"Tower A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Resident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('residentToken', jsonData.data.token);",
+                  "    console.log('Resident token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jane@greenvalley.in\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Resident Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{residentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Society",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{residentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"societyName\": \"Blue Heights\",\n    \"flatNumber\": \"B-205\",\n    \"buildingName\": \"Block B\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/society",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "society"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Customer",
+      "item": [
+        {
+          "name": "Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('customerToken', jsonData.data.token);",
+                  "    console.log('Customer token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Alice Customer\",\n    \"email\": \"alice@email.com\",\n    \"password\": \"password123\",\n    \"phone\": \"9876543210\",\n    \"addresses\": [\n        {\n            \"street\": \"456 Park Street\",\n            \"city\": \"Mumbai\",\n            \"state\": \"Maharashtra\",\n            \"pincode\": \"400002\",\n            \"landmark\": \"Near Metro Station\",\n            \"isDefault\": true\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('customerToken', jsonData.data.token);",
+                  "    console.log('Customer token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"alice@email.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"street\": \"789 New Road\",\n    \"city\": \"Pune\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"411001\",\n    \"landmark\": \"Near Mall\",\n    \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "address"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Public APIs (No Auth)",
+      "item": [
+        {
+          "name": "Get All Societies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/societies?compostAvailable=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "societies"],
+              "query": [
+                {
+                  "key": "compostAvailable",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/societies/Green%20Valley",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "societies", "Green%20Valley"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/societies/Green%20Valley/reports?status=AUTO_APPROVED&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "societies", "Green%20Valley", "reports"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AUTO_APPROVED"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Tax Rebates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/societies/Green%20Valley/tax-rebates?fromDate=2026-01-01&toDate=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "societies", "Green%20Valley", "tax-rebates"],
+              "query": [
+                {
+                  "key": "fromDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-12-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/leaderboard?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "leaderboard"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top N Societies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/leaderboard/top/5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "leaderboard", "top", "5"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Society Rank",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resident/leaderboard/society/Green%20Valley",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resident", "leaderboard", "society", "Green%20Valley"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Complete Workflows",
+      "item": [
+        {
+          "name": "Full Verification Workflow",
+          "item": [
+            {
+              "name": "1. Admin Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('adminToken', jsonData.data.token);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"DABS\",\n    \"password\": \"123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Register Society",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Test Manager\",\n    \"email\": \"test@greenvalley.in\",\n    \"password\": \"password123\",\n    \"phone\": \"9876543210\",\n    \"societyName\": \"Green Valley\",\n    \"designation\": \"manager\",\n    \"address\": {\"street\":\"123 Main\",\"city\":\"Mumbai\",\"state\":\"Maharashtra\",\"pincode\":\"400001\"},\n    \"propertyTaxEstimate\": 500000\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/society/register",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "society", "register"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Admin Approves Society",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/approve-society/{{societyId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "approve-society", "{{societyId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Society Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('societyToken', jsonData.data.token);",
+                      "    pm.collectionVariables.set('societyAccountId', jsonData.data.societyAccountId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"test@greenvalley.in\",\n    \"password\": \"password123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/society/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "society", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Submit Verification Report",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('reportId', jsonData.data.reportId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{societyToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "societyAccountId",
+                      "value": "{{societyAccountId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "meter_image",
+                      "type": "file",
+                      "src": "test-meter.jpg"
+                    },
+                    {
+                      "key": "composter_image",
+                      "type": "file",
+                      "src": "test-composter.jpg"
+                    },
+                    {
+                      "key": "gpsLatitude",
+                      "value": "19.0760",
+                      "type": "text"
+                    },
+                    {
+                      "key": "gpsLongitude",
+                      "value": "72.8777",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verification/report/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verification", "report", "upload"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Process Verification",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{societyToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"reportId\": \"{{reportId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/verification/detect",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "verification", "detect"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "7. Check Leaderboard",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/resident/leaderboard",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "resident", "leaderboard"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Officer Review Workflow",
+          "item": [
+            {
+              "name": "1. Officer Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('officerToken', jsonData.data.token);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"officer@bmc.gov.in\",\n    \"password\": \"password123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/officer/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "officer", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Get Pending Reviews",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{officerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bmc/pending-reviews",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bmc", "pending-reviews"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Submit Review (Approve)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{officerToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"action\": \"APPROVE\",\n    \"comments\": \"Verified - criteria met\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/bmc/review/{{reportId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bmc", "review", "{{reportId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Get Dashboard Stats",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{officerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bmc/officer/dashboard",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bmc", "officer", "dashboard"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
